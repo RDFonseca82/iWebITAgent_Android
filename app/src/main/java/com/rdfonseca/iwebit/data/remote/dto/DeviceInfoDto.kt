@@ -5,8 +5,8 @@ import androidx.annotation.Keep
 @Keep
 data class DeviceInfoDto(
     val Active: Int,
-    val AndroidMessage: Any,
-    val AndroidMessageTxt: String?,
+    val Message: Any,
+    val MessageTxt: String?,
     val AndroidPrintScreen: Int,
     val DeviceLocation: Int,
     val FullSync: Int,

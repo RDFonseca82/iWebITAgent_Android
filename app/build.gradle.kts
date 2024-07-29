@@ -11,10 +11,10 @@ android {
 
     defaultConfig {
         applicationId = "com.rdfonseca.iwebit"
-        minSdk = 21
+        minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 360
+        versionName = "3.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -29,6 +29,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
@@ -74,7 +75,6 @@ dependencies {
     // Compose dependencies
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.accompanist.navigation.animation)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.core)
@@ -107,13 +107,8 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     androidTestImplementation(libs.androidx.work.testing)
 
-    // UiController
-    implementation(libs.accompanist.systemuicontroller)
     // Drawable support
     implementation(libs.accompanist.drawablepainter)
-
-    // SwipeRefresh
-    implementation(libs.accompanist.swiperefresh)
 
     // Permission Handling
     implementation(libs.accompanist.permissions)

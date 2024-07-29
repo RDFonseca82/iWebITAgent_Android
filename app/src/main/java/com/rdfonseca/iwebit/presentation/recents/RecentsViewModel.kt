@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rdfonseca.iwebit.common.Resource
+import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
+import com.rdfonseca.iwebit.domain.use_case.GetSupportMessages
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -12,9 +15,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import com.rdfonseca.iwebit.common.Resource
-import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
-import com.rdfonseca.iwebit.domain.use_case.GetSupportMessages
 import javax.inject.Inject
 
 @HiltViewModel
@@ -67,12 +67,14 @@ class RecentsViewModel @Inject constructor(
                             isLoading = false
                         )
                     }
+
                     is Resource.Error -> {
                         state = state.copy(
-                            error = result.message?: "Oops, algo deu errado.",
+                            error = result.message ?: "Oops, algo deu errado.",
                             isLoading = false
                         )
                     }
+
                     is Resource.Loading -> {
                         state = state.copy(
                             error = "",

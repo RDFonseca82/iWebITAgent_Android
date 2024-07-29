@@ -1,24 +1,29 @@
 package com.rdfonseca.iwebit.presentation.ui.theme
 
+import android.app.Activity
+import android.graphics.Color
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColors
-import androidx.compose.material3.lightColors
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color.Companion.White
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.rdfonseca.iwebit.presentation.LocalUserPreferences
 
-private val DarkColorPalette = darkColors(
+private val DarkColorPalette = darkColorScheme(
     primary = Blue200,
-    primaryVariant = Blue500,
-    secondary = BlueA200,
+    secondary = Blue500,
+    tertiary = BlueA200,
     background = Gray800
 )
 
-private val LightColorPalette = lightColors(
+private val LightColorPalette = lightColorScheme(
     primary = Blue500,
-    primaryVariant = Blue700,
-    secondary = BlueA200,
+    secondary = Blue700,
+    tertiary = BlueA200,
     background = White
 )
 
@@ -31,8 +36,18 @@ fun IWebITTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable
         LightColorPalette
     }
 
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = if (darkTheme) Color.parseColor("#2A2A2A") else Color.WHITE
+            window.navigationBarColor = if (darkTheme) Color.parseColor("#2A2A2A") else Color.WHITE
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
     MaterialTheme(
-        colors = colors,
+        colorScheme = colors,
         typography = Typography,
         shapes = Shapes,
         content = content

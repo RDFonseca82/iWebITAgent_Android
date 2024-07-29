@@ -6,18 +6,17 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.rdfonseca.iwebit.R
-import com.rdfonseca.iwebit.common.Constants.FORCE_FULL_EXTRA
 import com.rdfonseca.iwebit.common.Constants.ACTION_REQUESTED_ASK_AND_CAPTURE_SCREEN
 import com.rdfonseca.iwebit.common.Constants.APPLICATIONS_DATA_EXTRA
 import com.rdfonseca.iwebit.common.Constants.CHANNEL_ID
 import com.rdfonseca.iwebit.common.Constants.CHANNEL_NAME
+import com.rdfonseca.iwebit.common.Constants.FORCE_FULL_EXTRA
 import com.rdfonseca.iwebit.common.Constants.FORCE_FULL_SYNC_DONE_NOTIFICATION_ID
 import com.rdfonseca.iwebit.common.Constants.REMOTE_MESSAGE_NOTIFICATION_ID
 import com.rdfonseca.iwebit.common.Constants.SCREENSHOT_NOTIFICATION_ID
@@ -37,11 +36,8 @@ import com.rdfonseca.iwebit.workers.FullSyncWorker
 import com.rdfonseca.iwebit.workers.MinSyncWorker
 import java.util.concurrent.TimeUnit
 
-val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+val pendingIntentFlags =
     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-} else {
-    0
-}
 
 fun setupFullSyncWorker(
     context: Context
@@ -57,7 +53,7 @@ fun setupFullSyncWorker(
         .build()
 
     WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-        Constants.WORKER_FULL_SYNC_TAG,
+        WORKER_FULL_SYNC_TAG,
         ExistingPeriodicWorkPolicy.KEEP,
         periodicWorkRequest
     )
@@ -72,23 +68,21 @@ fun setupMinSyncWorker(
     ).build()
 
     WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-        Constants.WORKER_MIN_SYNC_TAG,
+        WORKER_MIN_SYNC_TAG,
         ExistingPeriodicWorkPolicy.KEEP,
         periodicWorkRequest
     )
 }
 
 fun createNotificationChannel(context: Context) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val description = "Channel for System Tray Icon"
-        val importance = NotificationManager.IMPORTANCE_HIGH
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance)
-        channel.description = description
+    val description = "Channel for System Tray Icon"
+    val importance = NotificationManager.IMPORTANCE_HIGH
+    val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance)
+    channel.description = description
 
-        manager.createNotificationChannel(channel)
-    }
+    manager.createNotificationChannel(channel)
 }
 
 fun createNotification(
@@ -119,7 +113,7 @@ fun createNotification(
         .setSmallIcon(icon)
         .setContentTitle(title)
         .setContentText(message)
-        .setProgress(0,0, withProgress)
+        .setProgress(0, 0, withProgress)
         .setAutoCancel(autoCancel)
         .setOngoing(persistent)
         .setShowWhen(showTime)

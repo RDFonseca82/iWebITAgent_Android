@@ -5,13 +5,35 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,29 +41,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.Constants.PLAYSTORE_APP_URL
 import com.rdfonseca.iwebit.common.Constants.PRIVACY_POLICY_URL
 import com.rdfonseca.iwebit.common.Constants.SITE_URL
 import com.rdfonseca.iwebit.presentation.Screen
-import com.rdfonseca.iwebit.presentation.ui.theme.*
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue100
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue900
+import com.rdfonseca.iwebit.presentation.ui.theme.Yellow200
+import com.rdfonseca.iwebit.presentation.ui.theme.Yellow600
+import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.receivers.LocationConfigChangeReceiver
 import com.rdfonseca.iwebit.receivers.WifiConfigChangeReceiver
+import kotlinx.coroutines.launch
 import androidx.compose.material3.AlertDialog as DialogM3
 
 
-@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun DefaultScaffoldWithNavDrawer(
     navController: NavController,
+    snackbarHostState: SnackbarHostState,
+    drawerState: DrawerState,
     onLogOut: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -58,72 +89,79 @@ fun DefaultScaffoldWithNavDrawer(
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
     )
-
-    Scaffold(
+    ModalNavigationDrawer(
         drawerContent = {
-            DrawerHeader()
-            Divider()
-            DrawerBody(
-                onItemClick = { item ->
-                    scope.launch {
-                        when (item.id) {
-                            Screen.DefinitionsScreen.route,
-                            Screen.RecentsScreen.route,
-                            Screen.SupportScreen.route,
-                            Screen.WebPlatformScreen.route -> {
-                                scaffoldState.drawerState.close()
-                                navController.navigateIfNotAlready(item.id)
+            ModalDrawerSheet {
+                DrawerHeader()
+                HorizontalDivider()
+                DrawerBody(
+                    onItemClick = { item ->
+                        scope.launch {
+                            when (item.id) {
+                                Screen.DefinitionsScreen.route,
+                                Screen.RecentsScreen.route,
+                                Screen.SupportScreen.route,
+                                Screen.WebPlatformScreen.route -> {
+                                    drawerState.close()
+                                    navController.navigateIfNotAlready(item.id)
+                                }
+
+                                "site" -> uriHandler.openUri(SITE_URL)
+                                "rateapp" -> uriHandler.openUri(PLAYSTORE_APP_URL)
+                                "logout" -> showDialog = true
                             }
-                            "site" -> uriHandler.openUri(SITE_URL)
-                            "rateapp" -> uriHandler.openUri(PLAYSTORE_APP_URL)
-                            "logout" -> showDialog = true
                         }
+                    },
+                    shouldShowAlert = !(WifiConfigChangeReceiver.isWifiEnabled && LocationConfigChangeReceiver.isLocationEnabled && multiplePermissionsState.allPermissionsGranted),
+                    currentScreen = navController.currentBackStackEntryAsState().value?.destination?.route
+                        ?: ""
+                )
+            }
+        },
+        gesturesEnabled = drawerState.isOpen,
+        drawerState = drawerState
+    ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+
+            ) {
+            content(it)
+        }
+
+        if (showDialog)
+            DialogM3(
+                onDismissRequest = { showDialog = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        onLogOut()
+                    }) {
+                        Text(text = "Confirmar")
                     }
                 },
-                shouldShowAlert = !(WifiConfigChangeReceiver.isWifiEnabled && LocationConfigChangeReceiver.isLocationEnabled && multiplePermissionsState.allPermissionsGranted),
-                currentScreen = navController.currentBackStackEntryAsState().value?.destination?.route
-                    ?: ""
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text(text = "Cancelar")
+                    }
+                },
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_baseline_exit_to_app_24),
+                        contentDescription = "Exit from this logged in account"
+                    )
+                },
+                title = {
+                    Text(text = "Deseja sair da conta atual?", fontSize = 18.sp)
+                },
+                text = {
+                    Text(
+                        text = "Ao confirmar, irá desassociar-se da empresa atual.",
+                        textAlign = TextAlign.Center
+                    )
+                },
+                containerColor = if (isDarkTheme()) Blue900 else Blue100
             )
-        },
-        content = {
-            content(it)
-            if (showDialog)
-                DialogM3(
-                    onDismissRequest = { showDialog = false },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            showDialog = false
-                            onLogOut()
-                        }) {
-                            Text(text = "Confirmar")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDialog = false }) {
-                            Text(text = "Cancelar")
-                        }
-                    },
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_baseline_exit_to_app_24),
-                            contentDescription = "Exit from this logged in account"
-                        )
-                    },
-                    title = {
-                        Text(text = "Deseja sair da conta atual?")
-                    },
-                    text = {
-                        Text(
-                            text = "Ao confirmar, irá desassociar-se da empresa atual.",
-                            textAlign = TextAlign.Center
-                        )
-                    },
-                    containerColor = if (isDarkTheme()) Blue900 else Blue100
-                )
-        },
-        drawerGesturesEnabled = scaffoldState.drawerState.isOpen,
-        drawerShape = RoundedCornerShape(0.dp)
-    )
+    }
 }
 
 
@@ -158,7 +196,6 @@ fun DrawerBody(
     currentScreen: String,
     shouldShowAlert: Boolean
 ) {
-    val mutableInteractionSource by remember { mutableStateOf(MutableInteractionSource()) }
     val uriHandler = LocalUriHandler.current
 
     val items = listOf(
@@ -223,27 +260,24 @@ fun DrawerBody(
         }
         item {
             Spacer(modifier = Modifier.height(8.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
-                        interactionSource = mutableInteractionSource,
+                        interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = {
-                            uriHandler.openUri(PRIVACY_POLICY_URL)
-                        }
+                        onClick = { uriHandler.openUri(PRIVACY_POLICY_URL) }
                     ),
-                text = "Política de Privacidade ⋅ IWebIT",
-                color = if (isDarkTheme()) {
-                    Color.White
-                } else {
-                    Color.Gray
+                text = buildAnnotatedString {
+                    val underlineStyle = SpanStyle(textDecoration = TextDecoration.Underline)
+                    append("Política de Privacidade ⋅ IWebIT")
+                    addStyle(underlineStyle, start = 0, end = 23)
                 },
+                color = if (isDarkTheme()) Color.White else Color.Gray,
                 fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-//                textDecoration = TextDecoration.Underline
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -280,7 +314,7 @@ fun MenuItem(
             .background(
                 if (item.isActive && !item.warning)
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                else if (item.isActive && item.warning)
+                else if (item.isActive)
                     if (isDarkTheme())
                         Color.Yellow.copy(alpha = 0.3f)
                     else

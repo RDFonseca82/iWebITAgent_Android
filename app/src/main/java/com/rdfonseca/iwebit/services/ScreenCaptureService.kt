@@ -22,10 +22,6 @@ import android.os.Looper
 import android.view.Display
 import android.view.OrientationEventListener
 import android.view.WindowManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.common.Constants.ACTION_CAPTURED_REQUESTED_SCREEN
 import com.rdfonseca.iwebit.common.Constants.ACTION_CAPTURED_SCREEN
 import com.rdfonseca.iwebit.common.Constants.GERENCIADOR_REQUEST_EXTRA
@@ -37,6 +33,10 @@ import com.rdfonseca.iwebit.common.createRequestedScreenShotNotification
 import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.presentation.MockActivityPermission
 import com.rdfonseca.iwebit.presentation.ScreenshotShowCaseActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -81,12 +81,22 @@ class ScreenCaptureService : Service() {
             if (!storeDirectory.exists()) {
                 val success = storeDirectory.mkdirs()
                 if (!success) {
-                    logAndWrite(this, "ERROR: Failed to create screenshots directory.", "ScreenCaptureService", "onCreate")
+                    logAndWrite(
+                        this,
+                        "ERROR: Failed to create screenshots directory.",
+                        "ScreenCaptureService",
+                        "onCreate"
+                    )
                     stopSelf()
                 }
             }
         } else {
-            logAndWrite(this, "ERROR: getExternalFilesDir is null.", "ScreenCaptureService", "onCreate")
+            logAndWrite(
+                this,
+                "ERROR: getExternalFilesDir is null.",
+                "ScreenCaptureService",
+                "onCreate"
+            )
             stopSelf()
         }
 
@@ -112,7 +122,8 @@ class ScreenCaptureService : Service() {
                 startForeground(SCREENSHOT_NOTIFICATION_ID, notification)
             } else {
                 requestedScreenshot = true
-                val notification = createRequestedScreenShotNotification(this,
+                val notification = createRequestedScreenShotNotification(
+                    this,
                     "A capturar ecrã...",
                     waitingForUserConfirmation = false,
                     capturedScreen = false
@@ -132,7 +143,10 @@ class ScreenCaptureService : Service() {
                         if (!userStillSignedIn) {
                             break
                         }
-                        createScreenShotNotification(this@ScreenCaptureService, "A capturar ecrã em $i...")
+                        createScreenShotNotification(
+                            this@ScreenCaptureService,
+                            "A capturar ecrã em $i..."
+                        )
                         delay(1000)
                     }
                     cancelNotification(SCREENSHOT_NOTIFICATION_ID, this@ScreenCaptureService)
@@ -181,7 +195,7 @@ class ScreenCaptureService : Service() {
 
                         // write bitmap to a file
                         fos = FileOutputStream("$storeDir/ScreenShot.png")
-                        bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+                        bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, fos!!)
 
                         if (requestedScreenshot) {
                             val intent = Intent(
@@ -265,7 +279,12 @@ class ScreenCaptureService : Service() {
                 mediaProjection!!.registerCallback(
                     object : MediaProjection.Callback() {
                         override fun onStop() {
-                            logAndWrite(this@ScreenCaptureService, "STOPPING PROJECTION", "ScreenCaptureService", "startProjection")
+                            logAndWrite(
+                                this@ScreenCaptureService,
+                                "STOPPING PROJECTION",
+                                "ScreenCaptureService",
+                                "startProjection"
+                            )
                             handler?.post {
                                 virtualDisplay?.release()
                                 imageReader?.setOnImageAvailableListener(
@@ -314,7 +333,10 @@ class ScreenCaptureService : Service() {
         imageReader!!.setOnImageAvailableListener(imageAvailableListenerObj, handler)
     }
 
-    private fun createScreenShotNotification(context: Context, message: String = "A capturar ecrã em 3..."): Notification = createNotification(
+    private fun createScreenShotNotification(
+        context: Context,
+        message: String = "A capturar ecrã em 3..."
+    ): Notification = createNotification(
         context = context,
         title = "IWebIT",
         message = message,

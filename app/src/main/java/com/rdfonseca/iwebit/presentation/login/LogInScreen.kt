@@ -1,10 +1,7 @@
 package com.rdfonseca.iwebit.presentation.login
 
 import android.Manifest
-import android.app.Activity.RESULT_OK
 import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -12,11 +9,35 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -35,16 +56,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.R
-import com.rdfonseca.iwebit.common.*
+import com.rdfonseca.iwebit.common.Constants
+import com.rdfonseca.iwebit.common.createNotificationChannel
+import com.rdfonseca.iwebit.common.createSysTrayNotification
+import com.rdfonseca.iwebit.common.setupFullSyncWorker
+import com.rdfonseca.iwebit.common.setupMinSyncWorker
 import com.rdfonseca.iwebit.presentation.Screen
 import com.rdfonseca.iwebit.presentation.components.UserViewModel
 import com.rdfonseca.iwebit.presentation.login.components.ProminentLocationDisclosure
 import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.presentation.utils.lerp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -55,13 +80,14 @@ fun LogInScreen(
     val context = LocalContext.current
     val viewModel: LogInViewModel = hiltViewModel()
     val focusManager = LocalFocusManager.current
-    val scaffoldState = rememberScaffoldState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     var formVisible by rememberSaveable { mutableStateOf(false) }
     val fraction by animateFloatAsState(
         targetValue = if (formVisible) 1f else 0f,
-        animationSpec = tween(400)
+        animationSpec = tween(400),
+        label = "fractionAnimation"
     )
     val logInLambda = {
         scope.launch {
@@ -101,12 +127,12 @@ fun LogInScreen(
     }
 
     LaunchedEffect(key1 = viewModel.state.error) {
-        if (viewModel.state.error.isNotBlank()) scaffoldState.snackbarHostState.showSnackbar(viewModel.state.error)
+        if (viewModel.state.error.isNotBlank()) snackbarHostState.showSnackbar(viewModel.state.error)
     }
 
     Scaffold(
-        scaffoldState = scaffoldState
-    ){
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -137,8 +163,9 @@ fun LogInScreen(
                         fontSize = 18.sp
                     ),
                     singleLine = true,
-                    colors = TextFieldDefaults.textFieldColors(
-                        backgroundColor = Color.Transparent
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent
                     ),
                     keyboardActions = KeyboardActions(
                         onDone = {
@@ -190,7 +217,7 @@ fun LogInScreen(
                     modifier = Modifier
                         .padding(top = 50.dp)
                         .clickable(
-                            interactionSource = MutableInteractionSource(),
+                            interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = {
                                 uriHandler.openUri(Constants.SITE_URL)

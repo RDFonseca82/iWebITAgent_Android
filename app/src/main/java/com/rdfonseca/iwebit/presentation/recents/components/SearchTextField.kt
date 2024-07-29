@@ -4,13 +4,27 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.Close
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,7 +35,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.rdfonseca.iwebit.presentation.components.CustomTextField
-import com.rdfonseca.iwebit.presentation.ui.theme.*
+import com.rdfonseca.iwebit.presentation.ui.theme.Gray200
+import com.rdfonseca.iwebit.presentation.ui.theme.Gray400
+import com.rdfonseca.iwebit.presentation.ui.theme.Gray500
+import com.rdfonseca.iwebit.presentation.ui.theme.Gray700
+import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 
 @Composable
 fun SearchTextField(
@@ -34,21 +52,23 @@ fun SearchTextField(
     val bgFocused = if (isDarkTheme()) Gray500 else Gray200
     val bgUnfocused = if (isDarkTheme()) Gray700 else Gray400
     var focused by remember { mutableStateOf(false) }
-    val bgColor by animateColorAsState(targetValue = if (focused) bgFocused else bgUnfocused)
+    val bgColor by animateColorAsState(
+        targetValue = if (focused) bgFocused else bgUnfocused,
+        label = ""
+    )
 
     Row(
         modifier = Modifier
             .clickable(
-            interactionSource =  remember { MutableInteractionSource() },
-            indication = null,
-            onClick = {}
-        )
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            )
             .background(MaterialTheme.colorScheme.background)
             .padding(10.dp)
             .fillMaxWidth()
             .height(50.dp)
-            .background(bgColor, MaterialTheme.shapes.small)
-            ,
+            .background(bgColor, MaterialTheme.shapes.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
         CustomTextField(

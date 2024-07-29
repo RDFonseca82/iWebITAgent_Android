@@ -1,11 +1,7 @@
 package com.rdfonseca.iwebit.data.repository
 
 import android.content.Context
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
+import android.util.Log
 import com.rdfonseca.iwebit.common.Constants.HTTP_EXCEPTION_MESSAGE
 import com.rdfonseca.iwebit.common.Constants.IO_EXCEPTION_MESSAGE
 import com.rdfonseca.iwebit.common.Constants.NULL_POINTER_EXCEPTION_MESSAGE
@@ -20,12 +16,21 @@ import com.rdfonseca.iwebit.domain.model.CompanyDeviceInfo
 import com.rdfonseca.iwebit.domain.model.SupportMsg
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonFull
 import com.rdfonseca.iwebit.domain.repository.SupportMsgRepository
+import com.rdfonseca.iwebit.presentation.TAG
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.HttpException
 import java.io.File
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class SupportMsgRepositoryImpl(
     private val api: IWebITApi,
@@ -56,7 +61,11 @@ class SupportMsgRepositoryImpl(
         }
     }
 
-    override fun postSupportMsgs(nome: String, suporte: String, uniqueId: String): Flow<Resource<Unit>> = flow {
+    override fun postSupportMsgs(
+        nome: String,
+        suporte: String,
+        uniqueId: String
+    ): Flow<Resource<Unit>> = flow {
         emit(Resource.Loading())
 
         try {
@@ -83,24 +92,32 @@ class SupportMsgRepositoryImpl(
             val companyInfoDto = api.getCompanyInfo(idSync)
 
             val uniqueId = companyInfoDto.generateUniqueId(uuid)
-            val bodyInJsonFull = getBodyInJsonFull(
-                context,
-                uniqueId = uniqueId,
-                idsync = idSync,
-                getHostName = true
-            )
+            Log.d(TAG, "logIn: HERE 0")
+            val bodyInJsonFull = withContext(Dispatchers.IO) {
+                getBodyInJsonFull(
+                    context,
+                    uniqueId = uniqueId,
+                    idsync = idSync,
+                    getHostName = true
+                )
+            }
+            Log.d(TAG, "logIn: HERE 1")
             api.postSync(converters.toBodyJsonFull(bodyInJsonFull))
             try {
-                emit(Resource.Success(CompanyDeviceInfo(
-                    uniqueId = uniqueId,
-                    idSync = bodyInJsonFull.idsync,
-                    idCompany = companyInfoDto.IdCompany,
-                    companyName = companyInfoDto.Company,
-                    timeSync = companyInfoDto.TimeSync,
-                    timeAlive = companyInfoDto.TimeAlive
-                )))
+                emit(
+                    Resource.Success(
+                        CompanyDeviceInfo(
+                            uniqueId = uniqueId,
+                            idSync = bodyInJsonFull.idsync,
+                            idCompany = companyInfoDto.IdCompany,
+                            companyName = companyInfoDto.Company,
+                            timeSync = companyInfoDto.TimeSync,
+                            timeAlive = companyInfoDto.TimeAlive
+                        )
+                    )
+                )
             } catch (e: Exception) {
-                throw Exception("Deu barraca aqui, ${companyInfoDto.IdCompany} ${idSync} ")
+                throw Exception("Deu barraca aqui, ${companyInfoDto.IdCompany} $idSync ")
             }
 
         } catch (e: KotlinNullPointerException) { // Throws KotlinNullPointerException when api returns null, because idSync was not found
@@ -134,7 +151,12 @@ class SupportMsgRepositoryImpl(
                 uniqueId = uniqueIdBody
             )
 
-            logAndWrite(context, result.body() ?: "", "SupportMsgRepositoryImpl", "uploadScreenshot")
+            logAndWrite(
+                context,
+                result.body() ?: "",
+                "SupportMsgRepositoryImpl",
+                "uploadScreenshot"
+            )
 
             emit(Resource.Success(Unit))
         } catch (e: HttpException) {

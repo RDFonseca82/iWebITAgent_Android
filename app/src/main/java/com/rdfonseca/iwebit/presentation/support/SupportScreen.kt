@@ -3,14 +3,28 @@ package com.rdfonseca.iwebit.presentation.support
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.ArrowBack
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -30,7 +44,7 @@ fun SupportScreen(
 ) {
     val context = LocalContext.current
     val formValid = viewModel.nome.isNotBlank() && viewModel.suporte.isNotBlank()
-    val scaffoldState = rememberScaffoldState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     BackHandler {
         viewModel.showToastIfChanges(context)
@@ -38,12 +52,14 @@ fun SupportScreen(
     }
 
     LaunchedEffect(key1 = viewModel.sentMessageState.error) {
-        if (viewModel.sentMessageState.error.isNotBlank()) scaffoldState.snackbarHostState.showSnackbar(viewModel.sentMessageState.error)
+        if (viewModel.sentMessageState.error.isNotBlank()) snackbarHostState.showSnackbar(
+            viewModel.sentMessageState.error
+        )
     }
 
     Scaffold(
-        scaffoldState = scaffoldState
-    ){
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -65,7 +81,7 @@ fun SupportScreen(
                         }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Get back to Recents Screen",
                             tint = MaterialTheme.colorScheme.onBackground
                         )

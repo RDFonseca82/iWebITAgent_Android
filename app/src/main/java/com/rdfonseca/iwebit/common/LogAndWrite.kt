@@ -8,7 +8,8 @@ import com.rdfonseca.iwebit.data.util.formatFromStringDateHour
 import com.rdfonseca.iwebit.data.util.getDateHour
 import com.rdfonseca.iwebit.presentation.TAG
 import java.io.File
-import java.util.*
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 
 fun logAndWrite(context: Context, message: String, file: String, method: String) {
@@ -29,11 +30,14 @@ fun logAndWrite(context: Context, message: String, file: String, method: String)
     val isLogFileNew = (logFile?.readLines()?.size ?: 0) == 0
     Log.d(TAG, "logAndWrite: $isLogFileNew")
 
-    if(!isLogFileNew) {
+    if (!isLogFileNew) {
         logFile?.readLines()?.let {
             val dateParsed = formatFromStringDateHour(it[0].replace("\n", ""))
-            val timeDelta = (Date().time - dateParsed.time)/1000
-            val days = timeDelta/86400
+            val timeDelta =
+                (LocalDateTime.now().toEpochSecond(ZoneOffset.UTC) - dateParsed.toEpochSecond(
+                    ZoneOffset.UTC
+                )) / 1000
+            val days = timeDelta / 86400
             if (days > 0) {
                 logFile.writeText("")
             }

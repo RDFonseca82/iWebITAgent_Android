@@ -8,14 +8,23 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.ArrowForward
-import androidx.compose.material3.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.Constants.PRIVACY_POLICY_URL
 import com.rdfonseca.iwebit.common.cancelAllNotifications
@@ -45,6 +53,7 @@ import com.rdfonseca.iwebit.receivers.LocationConfigChangeReceiver
 import com.rdfonseca.iwebit.receivers.WifiConfigChangeReceiver
 import com.rdfonseca.iwebit.services.ScreenCaptureService
 import com.rdfonseca.iwebit.services.SincLocationService
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -52,8 +61,9 @@ fun DefinitionsScreen(
     navController: NavController,
     viewModel: UserViewModel
 ) {
-    val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val multiplePermissionsState = rememberMultiplePermissionsState(
@@ -72,14 +82,27 @@ fun DefinitionsScreen(
 
     DefaultScaffoldWithNavDrawer(
         navController = navController,
-        scaffoldState = scaffoldState,
-        onLogOut = { viewModel.logOut {
-            cancelAllNotifications(context)
-            context.startService(Intent(context, ScreenCaptureService::class.java))// cancel any active projections
-            context.startService(Intent(context, SincLocationService::class.java))// cancel service location
-            navController.popBackStack()
-            navController.navigate(Screen.LogInScreen.route)
-        } }
+        snackbarHostState = snackbarHostState,
+        drawerState = drawerState,
+        onLogOut = {
+            viewModel.logOut {
+                cancelAllNotifications(context)
+                context.startService(
+                    Intent(
+                        context,
+                        ScreenCaptureService::class.java
+                    )
+                )// cancel any active projections
+                context.startService(
+                    Intent(
+                        context,
+                        SincLocationService::class.java
+                    )
+                )// cancel service location
+                navController.popBackStack()
+                navController.navigate(Screen.LogInScreen.route)
+            }
+        }
     ) { innerPaddingValues ->
         Column(
             modifier = Modifier
@@ -89,7 +112,7 @@ fun DefinitionsScreen(
             DefaultCenteredTopBar(
                 onNavigationClick = {
                     scope.launch {
-                        scaffoldState.drawerState.open()
+                        drawerState.open()
                     }
                 }
             )
@@ -101,7 +124,7 @@ fun DefinitionsScreen(
                 if (!(WifiConfigChangeReceiver.isWifiEnabled && LocationConfigChangeReceiver.isLocationEnabled && multiplePermissionsState.allPermissionsGranted)) {
                     item {
                         Header(title = "Avisos")
-                        Divider()
+                        HorizontalDivider()
                         Spacer(modifier = Modifier.height(10.dp))
                     }
 
@@ -129,7 +152,9 @@ fun DefinitionsScreen(
                                     checkLocationSetting(
                                         context = context,
                                         onDisabled = { intentSenderRequest ->
-                                            settingResultRequest.launch(intentSenderRequest)
+                                            if (intentSenderRequest != null) {
+                                                settingResultRequest.launch(intentSenderRequest)
+                                            }
                                         }
                                     )
                                 }
@@ -145,20 +170,20 @@ fun DefinitionsScreen(
                                     context.startActivity(
                                         Intent(
                                             Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                                            Uri.parse("package:"+context.packageName)
+                                            Uri.parse("package:" + context.packageName)
                                         )
                                     )
                                 }
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                         }
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
 
                 item {
                     Header(title = "Definições do Utilizador")
-                    Divider()
+                    HorizontalDivider()
                 }
 
                 item {
@@ -173,17 +198,17 @@ fun DefinitionsScreen(
                             )
                         }
                     )
-                    Divider()
+                    HorizontalDivider()
                 }
 
                 item {
                     Header(title = "Definições da Empresa")
-                    Divider()
+                    HorizontalDivider()
                 }
 
                 item {
                     CompanySettings()
-                    Divider()
+                    HorizontalDivider()
                 }
 
                 item {
@@ -208,7 +233,7 @@ fun DefinitionsScreen(
                         )
 
                     }
-                    Divider()
+                    HorizontalDivider()
                 }
 
             }

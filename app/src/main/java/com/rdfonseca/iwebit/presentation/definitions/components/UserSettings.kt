@@ -1,12 +1,25 @@
 package com.rdfonseca.iwebit.presentation.definitions.components
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.icons.filled.KeyboardArrowUp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,7 +63,7 @@ fun ChangeThemeItem(
         Spacer(modifier = Modifier.weight(1f))
 
         Box {
-            TextButton(onClick = { dropMenuState.isExpanded = true }){
+            TextButton(onClick = { dropMenuState.isExpanded = true }) {
                 Text(
                     text = when (LocalUserPreferences.current.theme.darkThemeMode) {
                         DarkThemeMode.LIGHT -> "Claro"
@@ -77,10 +90,9 @@ fun ChangeThemeItem(
                         onClick = {
                             dropMenuState.isExpanded = false
                             onThemeChange(text)
-                        }
-                    ) {
-                        androidx.compose.material3.Text(text = text)
-                    }
+                        },
+                        text = { Text(text = text) }
+                    )
                 }
             }
         }

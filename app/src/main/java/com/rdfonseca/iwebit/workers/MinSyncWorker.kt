@@ -2,22 +2,25 @@ package com.rdfonseca.iwebit.workers
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.rdfonseca.iwebit.common.Constants
+import com.rdfonseca.iwebit.common.createNotification
+import com.rdfonseca.iwebit.common.createRequestedScreenShotNotification
+import com.rdfonseca.iwebit.common.createSysTrayNotification
+import com.rdfonseca.iwebit.common.createUninstallAppsNotification
 import com.rdfonseca.iwebit.common.logAndWrite
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
-import com.rdfonseca.iwebit.common.*
 import com.rdfonseca.iwebit.data.remote.IWebITApi
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
 import com.rdfonseca.iwebit.data.util.Converters
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonMin
 import com.rdfonseca.iwebit.services.SincLocationService
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class MinSyncWorker @AssistedInject constructor(
@@ -26,7 +29,7 @@ class MinSyncWorker @AssistedInject constructor(
     private val userPrefsRepo: UserPrefsRepositoryImpl,
     private val api: IWebITApi,
     private val converters: Converters
-): CoroutineWorker(context,params) {
+) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         logAndWrite(context, "DOING MINIMAL SYNC", "AlarmSync", "makeMinSync")
         val userData = userPrefsRepo.userPreferencesFlow.first()
@@ -34,13 +37,14 @@ class MinSyncWorker @AssistedInject constructor(
         if (userPrefsRepo.userPreferencesFlow.first().uniqueId.isBlank()) return Result.success()
 
         try {
-            val body = getBodyInJsonMin(context, idsync = userData.idSync, uniqueId = userData.uniqueId)
+            val body =
+                getBodyInJsonMin(context, idsync = userData.idSync, uniqueId = userData.uniqueId)
             api.postSync(converters.toBodyJsonMin(body))
 
             val deviceInfo = api.getDeviceInfo(userData.uniqueId)
 
-            deviceInfo.AndroidMessageTxt?.let{
-                if (it != "null" || it.isNotBlank() || it != "0")
+            deviceInfo.MessageTxt?.let {
+                if (it != "null" && it.isNotBlank() && it != "0")
                     createMessageTxt(context, it)
             }
 
@@ -48,11 +52,7 @@ class MinSyncWorker @AssistedInject constructor(
                 val intent = Intent(context, SincLocationService::class.java).apply {
                     action = Constants.ACTION_START_SERVICE
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
-                }
+                context.startForegroundService(intent)
             }
 
             if (deviceInfo.AndroidPrintScreen == 1) {
@@ -78,10 +78,15 @@ class MinSyncWorker @AssistedInject constructor(
                 createUninstallAppsNotification(context, appsToUninstall)
             }
 
-            logAndWrite(context, "INFO: DEVICE LOCATION -> ${deviceInfo.DeviceLocation} | APPS TO UNINSTALL -> ${appsToUninstallJson.body()}", "AlarmSync", "makeMinSync")
+            logAndWrite(
+                context,
+                "INFO: DEVICE LOCATION -> ${deviceInfo.DeviceLocation} | APPS TO UNINSTALL -> ${appsToUninstallJson.body()}",
+                "AlarmSync",
+                "makeMinSync"
+            )
 
             createSysTrayNotification(context, false)
-        } catch(e: CancellationException) {
+        } catch (e: CancellationException) {
             return Result.success()
         } catch (e: Exception) {
             logAndWrite(context, "ERROR: ${e.localizedMessage}", "AlarmSync", "makeMinSync")

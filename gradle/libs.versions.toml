@@ -1,35 +1,33 @@
 [versions]
 coreSplashscreen = "1.0.1"
 googleAccompanists = "0.34.0"
-agp = "8.3.0"
-datastorePreferences = "1.0.0"
-gradle = "8.3.0"
+agp = "8.5.1"
+datastorePreferences = "1.1.1"
+gradle = "8.5.1"
 hiltAndroid = "2.51"
 hiltAndroidGradlePlugin = "2.51"
 hiltCompiler = "1.2.0"
 kotlin = "1.9.0"
-coreKtx = "1.12.0"
+coreKtx = "1.13.1"
 junit = "4.13.2"
-junitVersion = "1.1.5"
-espressoCore = "3.5.1"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
 kotlinGradlePlugin = "1.6.21"
 kotlinxCoroutines = "1.7.3"
-lifecycleKtx = "2.7.0"
-activityCompose = "1.8.2"
-composeBom = "2024.02.02"
+lifecycleKtx = "2.8.4"
+activityCompose = "1.9.1"
+navigationCompose = "2.7.7"
+composeBom = "2024.06.00"
 lottieCompose = "6.4.0"
-materialIconsExtended = "1.6.3"
+materialIconsExtended = "1.6.8"
 okhttp = "4.12.0"
-playServicesLocation = "21.2.0"
+playServicesLocation = "21.3.0"
 squareupRetrofit = "2.9.0"
 workManager = "2.9.0"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "googleAccompanists" }
-accompanist-navigation-animation = { module = "com.google.accompanist:accompanist-navigation-animation", version.ref = "googleAccompanists" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "googleAccompanists" }
-accompanist-swiperefresh = { module = "com.google.accompanist:accompanist-swiperefresh", version.ref = "googleAccompanists" }
-accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "googleAccompanists" }
 accompanist-webview = { module = "com.google.accompanist:accompanist-webview", version.ref = "googleAccompanists" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
@@ -40,7 +38,7 @@ androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltCo
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workManager" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "squareupRetrofit" }

@@ -8,25 +8,33 @@ import android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.google.accompanist.navigation.animation.AnimatedNavHost
-import com.google.accompanist.navigation.animation.composable
-import com.google.accompanist.navigation.animation.rememberAnimatedNavController
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.rdfonseca.iwebit.common.createNotificationChannel
 import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.domain.model.UserPreferences
@@ -40,6 +48,9 @@ import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.presentation.webplataform.WebPlataform
 import com.rdfonseca.iwebit.receivers.LocationConfigChangeReceiver
 import com.rdfonseca.iwebit.receivers.WifiConfigChangeReceiver
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 
 val LocalUserPreferences = compositionLocalOf { UserPreferences() }
@@ -59,9 +70,8 @@ class MainActivity : ComponentActivity() {
 
         var showSplashScreen by mutableStateOf(true)
         installSplashScreen().apply {
-            this.setKeepOnScreenCondition{ showSplashScreen }
+            this.setKeepOnScreenCondition { showSplashScreen }
         }
-
         setContent {
             viewModel = hiltViewModel()
 
@@ -83,7 +93,8 @@ class MainActivity : ComponentActivity() {
 
             val locationManager = this.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-            val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+            val isNetworkEnabled =
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
             LocationConfigChangeReceiver.isLocationEnabled = isGpsEnabled || isNetworkEnabled
         }
@@ -115,7 +126,7 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@OptIn(ExperimentalAnimationApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun IWebITApp(
     viewModel: UserViewModel,
@@ -128,14 +139,12 @@ fun IWebITApp(
         LocalOverscrollConfiguration provides null
     ) {
         IWebITTheme(darkTheme = isDarkTheme()) {
-            val navController = rememberAnimatedNavController()
-            val darkTheme = isDarkTheme()
-            val uiController = rememberSystemUiController()
+            val navController = rememberNavController()
 
             val context = LocalContext.current
-            var initialScreen by remember{ mutableStateOf(Screen.LogInScreen.route) }
+            var initialScreen by remember { mutableStateOf(Screen.LogInScreen.route) }
 
-            LaunchedEffect(key1 = null) {
+            LaunchedEffect(true) {
                 if (viewModel.userPrefsStateFlow.first().idSync.isNotEmpty()) {
                     createNotificationChannel(context)
                     createSysTrayNotification(context)
@@ -145,14 +154,11 @@ fun IWebITApp(
                 onPostSplashScreen()
             }
 
-            uiController.setSystemBarsColor(if (darkTheme) Color(0xFF2A2A2A) else Color.White )
-
-            Surface(color = MaterialTheme.colorScheme.background){
-                AnimatedNavHost(
+            Surface(color = MaterialTheme.colorScheme.background) {
+                NavHost(
                     navController = navController,
                     startDestination = initialScreen
                 ) {
-
                     composable(
                         route = Screen.LogInScreen.route,
                         enterTransition = { EnterTransition.None },
@@ -220,7 +226,7 @@ fun IWebITApp(
                         },
                         enterTransition = {
                             fadeIn(animationSpec = tween(300)) +
-                                    slideIn (
+                                    slideIn(
                                         animationSpec = tween(300),
                                         initialOffset = { IntOffset(0, 400) }
                                     )

@@ -4,44 +4,45 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.ArrowBack
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.rdfonseca.iwebit.presentation.ui.theme.*
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue200
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue50
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue700
+import com.rdfonseca.iwebit.presentation.ui.theme.Blue900
+import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.presentation.utils.isScrolled
 import com.rdfonseca.iwebit.presentation.utils.lerp
-
-const val LOREM = "Lorem ipsum dolor sit amet, consectetur adipiscing elit," +
-        " sed do eiusmod tempor incididunt ut labore et dolore magna " +
-        "aliqua. Ut enim ad minim veniam, quis nostrud exercitation u" +
-        "llamco laboris nisi ut aliquip ex ea commodo consequat. Duis" +
-        " aute irure dolor in reprehenderit in voluptate velit esse c" +
-        "illum dolore eu fugiat nulla pariatur. Excepteur sint occaec" +
-        "at cupidatat non proident, sunt in culpa qui officia deserun" +
-        "t mollit anim id est laborum."
 
 @Composable
 fun MessageCard(
@@ -81,8 +82,9 @@ fun MessageCard(
         }
         Text(
             text = date,
-            modifier = Modifier.padding(5.dp, 10.dp,10.dp,0.dp),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            modifier = Modifier.padding(5.dp, 10.dp, 10.dp, 0.dp),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+            fontSize = 12.sp
         )
     }
 }
@@ -110,7 +112,7 @@ fun MessageCardAnimatable(
         MaterialTheme.colorScheme.background,
         openFraction
     )
-    val cornerRadius = lerp(8f, 0f,  openFraction)
+    val cornerRadius = lerp(8f, 0f, openFraction)
 
     Box(
         modifier = Modifier
@@ -154,7 +156,8 @@ fun MessageCardAnimatable(
                     (10 * (1 - openFraction)).dp,
                     0.dp
                 ),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                fontSize = 12.sp
             )
         }
 
@@ -206,7 +209,7 @@ fun MessageCardAnimatable(
             ) {
                 IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Dismiss detail screen"
                     )
                 }

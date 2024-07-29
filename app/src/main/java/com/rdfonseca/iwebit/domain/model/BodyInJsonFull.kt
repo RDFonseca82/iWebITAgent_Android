@@ -5,16 +5,15 @@ import android.app.usage.StorageStatsManager
 import android.content.Context
 import android.os.Build
 import android.os.storage.StorageManager
-import androidx.activity.ComponentActivity
 import androidx.annotation.Keep
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import com.rdfonseca.iwebit.BuildConfig
 import com.rdfonseca.iwebit.common.getAllApps
 import com.rdfonseca.iwebit.common.getBatteryCapacity
-import com.rdfonseca.iwebit.common.getMacAdress
 import com.rdfonseca.iwebit.common.getIpV4
+import com.rdfonseca.iwebit.common.getMacAdress
 import com.rdfonseca.iwebit.data.util.getDateHour
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.net.InetAddress
 import java.net.UnknownHostException
 import java.sql.Timestamp
@@ -99,13 +98,10 @@ suspend fun getBodyInJsonFull(
     longitude: String = "",
     getHostName: Boolean = false
 ): BodyInJsonFull {
-    val ssm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    val ssm =
         context.getSystemService(StorageStatsManager::class.java)
-    } else {
-        null
-    }
     val meminfo = ActivityManager.MemoryInfo()
-    val am = context.getSystemService(ComponentActivity.ACTIVITY_SERVICE) as ActivityManager
+    val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     am.getMemoryInfo(meminfo)
 
     val ipV4 = getIpV4()
@@ -136,26 +132,30 @@ suspend fun getBodyInJsonFull(
         idAndroid = Build.ID,
         manufacturer = Build.MANUFACTURER,
         model = Build.MODEL,
-        odmSku = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ) Build.ODM_SKU else "",
+        odmSku = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.ODM_SKU else "",
         product = Build.PRODUCT,
-        sku = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ) Build.SKU else "",
-        socManufacturer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ) Build.SOC_MANUFACTURER else "",
-        socModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ) Build.SOC_MODEL else "",
+        sku = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SKU else "",
+        socManufacturer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MANUFACTURER else "",
+        socModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MODEL else "",
         time = Timestamp(Build.TIME).toString().slice(0..18),
         type = Build.TYPE,
         user = Build.USER,
-        baseOS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ) Build.VERSION.BASE_OS else "",
+        baseOS = Build.VERSION.BASE_OS,
         codename = Build.VERSION.CODENAME,
         incremental = Build.VERSION.INCREMENTAL,
-        mediaPerformanceClass = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ) Build.VERSION.MEDIA_PERFORMANCE_CLASS.toString() else "0",
-        previewSdkInt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ) Build.VERSION.PREVIEW_SDK_INT.toString() else "0",
+        mediaPerformanceClass = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.VERSION.MEDIA_PERFORMANCE_CLASS.toString() else "0",
+        previewSdkInt = Build.VERSION.PREVIEW_SDK_INT.toString(),
         release = Build.VERSION.RELEASE,
-        releaseOrCodename = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ) Build.VERSION.RELEASE_OR_CODENAME else "",
+        releaseOrCodename = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Build.VERSION.RELEASE_OR_CODENAME else "",
         sdk = Build.VERSION.SDK,
         sdkInt = Build.VERSION.SDK_INT.toString(),
-        securityPatch = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ) Build.VERSION.SECURITY_PATCH else "",
-        freeBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ssm?.getFreeBytes(StorageManager.UUID_DEFAULT).toString() else "0",
-        totalBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ssm?.getTotalBytes(StorageManager.UUID_DEFAULT).toString() else "0",
+        securityPatch = Build.VERSION.SECURITY_PATCH,
+        freeBytes = ssm?.getFreeBytes(
+            StorageManager.UUID_DEFAULT
+        ).toString(),
+        totalBytes = ssm?.getTotalBytes(
+            StorageManager.UUID_DEFAULT
+        ).toString(),
         availMem = meminfo.availMem.toString(),
         lowMemory = meminfo.lowMemory.toString(),
         threshold = meminfo.threshold.toString(),
@@ -175,13 +175,10 @@ fun getBodyInJsonMin(
     uniqueId: String = "",
     idsync: String,
 ): BodyInJsonMin {
-    val ssm = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    val ssm =
         context.getSystemService(StorageStatsManager::class.java)
-    } else {
-        null
-    }
     val meminfo = ActivityManager.MemoryInfo()
-    val am = context.getSystemService(ComponentActivity.ACTIVITY_SERVICE) as ActivityManager
+    val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     am.getMemoryInfo(meminfo)
 
 
@@ -191,7 +188,9 @@ fun getBodyInJsonMin(
         TypeSync = 2,
         currentTime = getDateHour(),
         ipAddress = getIpV4(),
-        freeBytes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ssm?.getFreeBytes(StorageManager.UUID_DEFAULT).toString() else "0",
+        freeBytes = ssm?.getFreeBytes(
+            StorageManager.UUID_DEFAULT
+        ).toString(),
         availMem = meminfo.availMem.toString(),
         batteryCapacity = getBatteryCapacity(context)
     )

@@ -12,16 +12,46 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.*
-import androidx.compose.material3.icons.Icons
-import androidx.compose.material3.icons.filled.Search
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.material3.rememberDrawerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,9 +75,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.cancelAllNotifications
 import com.rdfonseca.iwebit.common.setupFullSyncWorker
@@ -66,70 +93,77 @@ import com.rdfonseca.iwebit.presentation.utils.isScrolled
 import com.rdfonseca.iwebit.presentation.utils.lerp
 import com.rdfonseca.iwebit.services.ScreenCaptureService
 import com.rdfonseca.iwebit.services.SincLocationService
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecentsScreen(
     navController: NavController,
     userViewModel: UserViewModel
 ) {
     val viewModel: RecentsViewModel = hiltViewModel()
-    val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val lazyListState = rememberLazyListState()
-    val swipeState = rememberSwipeRefreshState(viewModel.state.isLoading)
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val snackbarHostState = remember { SnackbarHostState() }
     val density = LocalDensity.current
     val context = LocalContext.current
     val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     val searchValue = viewModel.searchText
     var searchFieldIsVisible by rememberSaveable { mutableStateOf(false) }
-    val data = viewModel.state.let { if (searchFieldIsVisible) it.filteredMsgs else it.allMsgs}
+    val data = viewModel.state.let { if (searchFieldIsVisible) it.filteredMsgs else it.allMsgs }
+
+    var cardExpanded by rememberSaveable { mutableStateOf(false) }
+    var currentOpenedPopupID by rememberSaveable { mutableIntStateOf(-1) }
+    val pullToRefresh = rememberPullToRefreshState(50.dp) { currentOpenedPopupID < 0 }
+    var cardHeight by rememberSaveable { mutableIntStateOf(0) }
+    val shouldRespondToUserInteraction = currentOpenedPopupID < 0 && !pullToRefresh.isRefreshing
 
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
-    val toolbarOffsetHeightPx = rememberSaveable { mutableStateOf(0f) }
+    val toolbarOffsetHeightPx = rememberSaveable { mutableFloatStateOf(0f) }
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (!swipeState.isSwipeInProgress && !swipeState.isRefreshing) {
+                if (!pullToRefresh.isSwipeInProgress && !pullToRefresh.isRefreshing && currentOpenedPopupID < 0) {
                     val delta = available.y
-                    val newOffset = toolbarOffsetHeightPx.value + delta
-                    toolbarOffsetHeightPx.value = newOffset.coerceIn(-toolbarHeightPx, 0f)
+                    val newOffset = toolbarOffsetHeightPx.floatValue + delta
+                    toolbarOffsetHeightPx.floatValue = newOffset.coerceIn(-toolbarHeightPx, 0f)
                 }
                 return Offset.Zero
             }
         }
     }
 
-    var cardExpanded by rememberSaveable { mutableStateOf(false) }
-    var currentOpenedPopupID by rememberSaveable { mutableStateOf(-1) }
-    var cardHeight by rememberSaveable { mutableStateOf(0) }
-    val shouldRespondToUserInteraction = currentOpenedPopupID < 0 || !swipeState.isRefreshing
     val fraction by animateFloatAsState(
         targetValue = if (cardExpanded) 1f else 0f,
         finishedListener = {
             if (it == 0f) currentOpenedPopupID = -1
             if (it == 1f && searchFieldIsVisible) focusManager.clearFocus()
         },
-        animationSpec = tween(250)
+        animationSpec = tween(250),
+        label = "fractionAimation"
     )
 
-    LaunchedEffect(key1 = searchFieldIsVisible) {
+    LaunchedEffect(searchFieldIsVisible) {
         if (searchFieldIsVisible) focusRequester.requestFocus()
-        toolbarOffsetHeightPx.value = 0f
+        toolbarOffsetHeightPx.floatValue = 0f
         lazyListState.scrollToItem(0)
     }
 
-    LaunchedEffect(key1 = viewModel.state.error) {
-        if (viewModel.state.error.isNotBlank()) scaffoldState.snackbarHostState.showSnackbar(viewModel.state.error)
+    LaunchedEffect(viewModel.state.error) {
+        if (viewModel.state.error.isNotBlank()) snackbarHostState.showSnackbar(
+            viewModel.state.error
+        )
     }
 
-    LaunchedEffect(key1 = true) {
+    LaunchedEffect(true) {
         setupFullSyncWorker(context)
         setupMinSyncWorker(context)
     }
@@ -143,85 +177,91 @@ fun RecentsScreen(
         viewModel.onSearch("")
     }
 
-    BackHandler(currentOpenedPopupID < 0 && !(searchFieldIsVisible && currentOpenedPopupID < 0)) {
-        (context as Activity).finish()
+    BackHandler(currentOpenedPopupID < 0 && !searchFieldIsVisible) {
+        if (lazyListState.isScrolled)
+            scope.launch { lazyListState.scrollToItem(0) }
+        else
+            (context as Activity).finish()
+    }
+
+    if (pullToRefresh.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.refreshSupportedMessages()
+        }
+    }
+
+    LaunchedEffect(viewModel.state.isLoading) {
+        if (viewModel.state.isLoading) {
+            pullToRefresh.startRefresh()
+        } else {
+            pullToRefresh.endRefresh()
+        }
     }
 
     DefaultScaffoldWithNavDrawer(
         navController = navController,
-        scaffoldState = scaffoldState,
-        onLogOut = { userViewModel.logOut {
-            cancelAllNotifications(context)
-            context.startService(Intent(context, ScreenCaptureService::class.java))// cancel any active projections
-            context.startService(Intent(context, SincLocationService::class.java))// cancel service location
-            navController.popBackStack()
-            navController.navigate(Screen.LogInScreen.route)
-        } }
+        snackbarHostState = snackbarHostState,
+        drawerState = drawerState,
+        onLogOut = {
+            userViewModel.logOut {
+                cancelAllNotifications(context)
+                context.startService(
+                    Intent(
+                        context,
+                        ScreenCaptureService::class.java
+                    )
+                )// cancel any active projections
+                context.startService(
+                    Intent(
+                        context,
+                        SincLocationService::class.java
+                    )
+                )// cancel service location
+                navController.popBackStack()
+                navController.navigate(Screen.LogInScreen.route)
+            }
+        }
     ) { innerPaddingValues ->
         Box(
             Modifier
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
+                .nestedScroll(pullToRefresh.nestedScrollConnection)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(innerPaddingValues)
         ) {
-            SwipeRefresh(
-                state = swipeState,
-                onRefresh = viewModel::refreshSupportedMessages,
-                indicatorPadding =  PaddingValues(top = toolbarHeight),
-                refreshTriggerDistance = 50.dp,
-                swipeEnabled = currentOpenedPopupID < 0 && !searchFieldIsVisible,
-                indicator = { state, triggerDistance ->
-                    if (state.isRefreshing)
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    else if (state.isSwipeInProgress) {
-                        val indicatorRefreshTrigger = with(density) { triggerDistance.toPx() }
-                        val triggerDistanceFraction = (state.indicatorOffset / indicatorRefreshTrigger)
-                            .coerceAtMost(1f)
-                        val height = lerp(0f, 1f, 0f, 0.2f, triggerDistanceFraction)
-                        val progress = lerp(0f, 1f, 0.2f, 1f, triggerDistanceFraction)
-
-                        LinearProgressIndicator(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .scale(scaleX = 1f, scaleY = height),
-                            progress = progress
-                        )
-                    }
-                }
+            LazyColumn(
+                contentPadding = PaddingValues(top = toolbarHeight + 8.dp),
+                modifier = Modifier.fillMaxSize(),
+                state = lazyListState,
+                userScrollEnabled = shouldRespondToUserInteraction,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                LazyColumn(
-                    contentPadding = PaddingValues(top = toolbarHeight + 8.dp),
-                    modifier = Modifier.fillMaxSize(),
-                    state = lazyListState,
-                    userScrollEnabled = shouldRespondToUserInteraction,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    itemsIndexed (data) { index, item ->
-                        val modifierToCalculate = if (index == 0) {
-                            Modifier.onGloballyPositioned {
-                                cardHeight = it.size.height
-                            }
-                        } else {
-                            Modifier
+                itemsIndexed(data) { index, item ->
+                    val modifierToCalculate = if (index == 0) {
+                        Modifier.onGloballyPositioned {
+                            cardHeight = it.size.height
                         }
-
-                        MessageCard(
-                            modifier = modifierToCalculate,
-                            header = formatToAnnotatedString(item.header, searchValue),
-                            message = formatToAnnotatedString(item.message, searchValue),
-                            date = formatDateToHumanReadable(item.date, sdf),
-                            onClick = {
-                                if (shouldRespondToUserInteraction) {
-                                    currentOpenedPopupID = index
-                                    cardExpanded = true
-                                }
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(20.dp))
+                    } else {
+                        Modifier
                     }
+
+                    MessageCard(
+                        modifier = modifierToCalculate,
+                        header = formatToAnnotatedString(item.header, searchValue),
+                        message = formatToAnnotatedString(item.message, searchValue),
+                        date = formatDateToHumanReadable(item.date, sdf),
+                        onClick = {
+                            if (shouldRespondToUserInteraction) {
+                                currentOpenedPopupID = index
+                                cardExpanded = true
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+
 
             if (!searchFieldIsVisible) {
                 DefaultCenteredTopBar(
@@ -229,13 +269,13 @@ fun RecentsScreen(
                         .offset {
                             IntOffset(
                                 x = 0,
-                                y = if (!lazyListState.isScrolled) 0 else toolbarOffsetHeightPx.value.roundToInt()
+                                y = if (!lazyListState.isScrolled) 0 else toolbarOffsetHeightPx.floatValue.roundToInt()
                             )
-                                },
+                        },
                     onNavigationClick = {
                         if (shouldRespondToUserInteraction)
                             scope.launch {
-                                scaffoldState.drawerState.open()
+                                drawerState.open()
                             }
                     },
                     actions = {
@@ -257,7 +297,7 @@ fun RecentsScreen(
                     modifier = Modifier
                         .focusRequester(focusRequester),
                     textValue = searchValue,
-                    onTextChange =  viewModel::onSearch,
+                    onTextChange = viewModel::onSearch,
                     onClose = {
                         searchFieldIsVisible = false
                         viewModel.onSearch("")
@@ -284,9 +324,9 @@ fun RecentsScreen(
                     modifier = Modifier
                         .padding(20.dp)
                         .size(56.dp)
-                        .offset(y = if (!lazyListState.isScrolled) 0.dp else (-80).dp * (0f + toolbarOffsetHeightPx.value / toolbarHeightPx)),
+                        .offset(y = if (!lazyListState.isScrolled) 0.dp else (-80).dp * (0f + toolbarOffsetHeightPx.floatValue / toolbarHeightPx)),
                     onClick = { if (currentOpenedPopupID < 0) navController.navigate(Screen.SupportScreen.route) },
-                    backgroundColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_baseline_support_agent_24),
@@ -297,19 +337,23 @@ fun RecentsScreen(
                 }
             }
 
-            if(currentOpenedPopupID >= 0) {
+            if (currentOpenedPopupID >= 0) {
+                val months = listOf(
+                    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+                )
                 val itemOpenedOffset by remember {
                     derivedStateOf {
                         val fstVisibleItemIndex = lazyListState.firstVisibleItemIndex
                         val fstVisibleItemOffset = lazyListState.firstVisibleItemScrollOffset
-                        with (density) {
+                        with(density) {
                             (toolbarHeight + 8.dp +
                                     ((currentOpenedPopupID - fstVisibleItemIndex) * cardHeight).toDp() +
                                     ((currentOpenedPopupID - fstVisibleItemIndex) * 20).dp) - fstVisibleItemOffset.toDp()
                         }
                     }
                 }
-                val item = data.getOrElse(currentOpenedPopupID,defaultValue = { SupportMsg() })
+                val item = data.getOrElse(currentOpenedPopupID, defaultValue = { SupportMsg() })
                 val formattedData = let {
                     val year = item.date.slice(0..3)
                     val month = item.date.slice(5..6)
@@ -317,7 +361,7 @@ fun RecentsScreen(
                     val hour = item.date.slice(11..12)
                     val minute = item.date.slice(14..15)
 
-                    "$day de $month de $year, $hour:$minute"
+                    "$day de ${months.get(month.toInt() - 1)} de $year, $hour:$minute"
                 }
 
                 MessageCardAnimatable(
@@ -325,7 +369,7 @@ fun RecentsScreen(
                     message = formatToAnnotatedString(item.message, searchValue),
                     deltaDate = formatDateToHumanReadable(item.date, sdf),
                     date = formattedData,
-                    offsetY = with(density) {itemOpenedOffset.toPx()},
+                    offsetY = with(density) { itemOpenedOffset.toPx() },
                     openFraction = fraction,
                     cardHeight = cardHeight,
                     onBackClick = {
@@ -334,12 +378,12 @@ fun RecentsScreen(
                 )
             }
 
-            AnimatedVisibility (
+            AnimatedVisibility(
                 modifier = Modifier
                     .wrapContentHeight()
                     .align(Alignment.Center)
                     .alpha(0.7f),
-                visible = data.isEmpty() && !searchFieldIsVisible && !swipeState.isRefreshing && viewModel.state.error.isEmpty(),
+                visible = data.isEmpty() && !searchFieldIsVisible && !pullToRefresh.isRefreshing && viewModel.state.error.isEmpty(),
                 enter = fadeIn(keyframes {
                     0f at 300
                     durationMillis = 400
@@ -361,19 +405,20 @@ fun RecentsScreen(
                 }
             }
 
-            AnimatedVisibility (
+            AnimatedVisibility(
                 modifier = Modifier
                     .wrapContentHeight()
                     .align(Alignment.Center)
                     .alpha(0.7f),
-                visible = data.isEmpty() && !searchFieldIsVisible && !swipeState.isRefreshing && viewModel.state.error.isNotEmpty(),
+                visible = data.isEmpty() && !searchFieldIsVisible && !pullToRefresh.isRefreshing && viewModel.state.error.isNotEmpty(),
                 enter = fadeIn(keyframes {
                     0f at 300
                     durationMillis = 400
                 }),
                 exit = ExitTransition.None,
             ) {
-                val noConText = "Sem conexão à internet. Por favor, verifique a sua conexão e tente novamente."
+                val noConText =
+                    "Sem conexão à internet. Por favor, verifique a sua conexão e tente novamente."
                 val noConTextAnnotated = buildAnnotatedString {
                     append(noConText)
                     addStyle(
@@ -395,7 +440,7 @@ fun RecentsScreen(
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
                             .clickable(
-                                interactionSource = MutableInteractionSource(),
+                                interactionSource = remember { MutableInteractionSource() },
                                 null,
                                 true,
                                 null,
@@ -407,6 +452,31 @@ fun RecentsScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
+            }
+
+            if (pullToRefresh.isRefreshing)
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = toolbarHeight)
+                )
+            else if (pullToRefresh.isSwipeInProgress) {
+                val indicatorRefreshTrigger = pullToRefresh.positionalThreshold
+                val triggerDistanceFraction =
+                    (pullToRefresh.verticalOffset / indicatorRefreshTrigger)
+                        .coerceAtMost(1f)
+                val height = lerp(0f, 1f, 0f, 0.2f, triggerDistanceFraction)
+                val progress = lerp(0f, 1f, 0.2f, 1f, triggerDistanceFraction)
+
+                LinearProgressIndicator(
+                    progress = {
+                        progress
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = toolbarHeight)
+                        .scale(scaleX = 1f, scaleY = height),
+                )
             }
         }
     }
@@ -437,4 +507,7 @@ fun String.indexesOf(text: String): List<Int> =
         .map { it.range.first }
         .toList()
 
+@OptIn(ExperimentalMaterial3Api::class)
+val PullToRefreshState.isSwipeInProgress: Boolean
+    get() = this.progress > 0
 

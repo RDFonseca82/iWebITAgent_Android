@@ -12,11 +12,28 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -31,18 +48,21 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
-import com.rdfonseca.iwebit.common.logAndWrite
-import dagger.hilt.android.AndroidEntryPoint
 import com.rdfonseca.iwebit.R
-import com.rdfonseca.iwebit.common.*
+import com.rdfonseca.iwebit.common.Constants
 import com.rdfonseca.iwebit.common.Constants.ACTION_UPDATE_APPS_TO_UNINSTALL
 import com.rdfonseca.iwebit.common.Constants.APPLICATIONS_DATA_EXTRA
 import com.rdfonseca.iwebit.common.Constants.UNINSTALL_APPS_NOTIFICATION_ID
+import com.rdfonseca.iwebit.common.cancelNotification
+import com.rdfonseca.iwebit.common.createUninstallAppsNotification
+import com.rdfonseca.iwebit.common.getAllApps
+import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.domain.model.UserPreferences
 import com.rdfonseca.iwebit.presentation.components.UserViewModel
 import com.rdfonseca.iwebit.presentation.ui.theme.IWebITTheme
 import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.workers.FullSyncWorker
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class UninstallAppsActivity : ComponentActivity() {
@@ -51,7 +71,8 @@ class UninstallAppsActivity : ComponentActivity() {
     private var brUpdateAppsToUninstall = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "onReceive: ${intent.getStringExtra(APPLICATIONS_DATA_EXTRA)}")
-            appsToUninstall = intent.getStringExtra(APPLICATIONS_DATA_EXTRA)?.split(",") ?: emptyList()
+            appsToUninstall =
+                intent.getStringExtra(APPLICATIONS_DATA_EXTRA)?.split(",") ?: emptyList()
         }
     }
 
@@ -85,9 +106,11 @@ class UninstallAppsActivity : ComponentActivity() {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         Column(
                             modifier = Modifier.fillMaxSize()
-                        ){
+                        ) {
                             Text(
-                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
                                 text = "Desinstalar Apps",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -95,7 +118,9 @@ class UninstallAppsActivity : ComponentActivity() {
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Box(
-                                modifier = Modifier.fillMaxWidth().weight(1f)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
                             ) {
                                 LazyColumn {
                                     items(appsToUninstall) { app ->
@@ -105,7 +130,8 @@ class UninstallAppsActivity : ComponentActivity() {
 
                                         val painter = packageIcon?.let {
                                             rememberDrawablePainter(drawable = it)
-                                        } ?: painterResource(id = R.mipmap.ic_not_found_launcher_round)
+                                        }
+                                            ?: painterResource(id = R.mipmap.ic_not_found_launcher_round)
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -130,7 +156,11 @@ class UninstallAppsActivity : ComponentActivity() {
                                                 Text(text = "Remover")
                                             }
                                         }
-                                        Divider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                                        HorizontalDivider(
+                                            color = MaterialTheme.colorScheme.onBackground.copy(
+                                                alpha = 0.1f
+                                            )
+                                        )
                                     }
                                 }
                                 if (appsToUninstall.isEmpty()) {
@@ -157,7 +187,12 @@ class UninstallAppsActivity : ComponentActivity() {
             }
             startActivity(intentDelete)
         } catch (e: Exception) {
-            logAndWrite(this, "ERROR: ${e.localizedMessage}", "UninstallAppsActivity", "uninstallApp")
+            logAndWrite(
+                this,
+                "ERROR: ${e.localizedMessage}",
+                "UninstallAppsActivity",
+                "uninstallApp"
+            )
         }
     }
 
