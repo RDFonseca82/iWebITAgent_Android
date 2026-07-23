@@ -99,6 +99,7 @@ fun DefaultScaffoldWithNavDrawer(
                         scope.launch {
                             when (item.id) {
                                 Screen.DefinitionsScreen.route,
+                                Screen.DiagnosticsScreen.route,
                                 Screen.RecentsScreen.route,
                                 Screen.SupportScreen.route,
                                 Screen.WebPlatformScreen.route -> {
@@ -206,6 +207,13 @@ fun DrawerBody(
             icon = painterResource(id = R.drawable.ic_outline_settings_24),
             warning = shouldShowAlert,
             isActive = currentScreen == Screen.DefinitionsScreen.route
+        ),
+        MenuItem(
+            id = Screen.DiagnosticsScreen.route,
+            title = "Diagnóstico",
+            contentDescription = "Diagnóstico e saúde do dispositivo",
+            icon = painterResource(id = R.drawable.ic_baseline_list_24),
+            isActive = currentScreen == Screen.DiagnosticsScreen.route
         ),
         MenuItem(
             id = Screen.RecentsScreen.route,

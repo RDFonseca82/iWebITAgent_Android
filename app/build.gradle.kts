@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "com.rdfonseca.iwebit"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.rdfonseca.iwebit"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 360
-        versionName = "3.6"
+        targetSdk = 36
+        versionCode = 400
+        versionName = "4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -93,6 +93,11 @@ dependencies {
 
     // Preferences DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // Persistent offline synchronization queue
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    kapt(libs.androidx.room.compiler)
 
     // Retrofit
     implementation(libs.squareup.retrofit)

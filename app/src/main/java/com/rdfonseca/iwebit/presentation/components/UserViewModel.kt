@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import com.rdfonseca.iwebit.common.Resource
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
+import com.rdfonseca.iwebit.data.repository.OfflineSyncRepository
 import com.rdfonseca.iwebit.domain.model.DarkThemeMode
 import com.rdfonseca.iwebit.domain.use_case.PostSupportMessage
 import com.rdfonseca.iwebit.domain.use_case.UploadScreenshot
@@ -28,7 +29,8 @@ import javax.inject.Inject
 class UserViewModel @Inject constructor(
     private val userPreferencesRepository: UserPrefsRepositoryImpl,
     private val postSupportMessage: PostSupportMessage,
-    private val uploadScreenshot: UploadScreenshot
+    private val uploadScreenshot: UploadScreenshot,
+    private val offlineSyncRepository: OfflineSyncRepository
 ) : ViewModel() {
 
     val userPrefsStateFlow = userPreferencesRepository.userPreferencesFlow
@@ -163,6 +165,7 @@ class UserViewModel @Inject constructor(
     fun logOut(navigateToLogIn: () -> Unit) {
         viewModelScope.launch {
             userPreferencesRepository.updateUserInfo()
+            offlineSyncRepository.clear()
             nome = ""
             nomeOnStart = ""
             suporte = ""

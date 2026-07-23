@@ -8,6 +8,7 @@ import android.net.wifi.WifiManager.NETWORK_STATE_CHANGED_ACTION
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -40,6 +41,7 @@ import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.domain.model.UserPreferences
 import com.rdfonseca.iwebit.presentation.components.UserViewModel
 import com.rdfonseca.iwebit.presentation.definitions.DefinitionsScreen
+import com.rdfonseca.iwebit.presentation.diagnostics.DiagnosticsScreen
 import com.rdfonseca.iwebit.presentation.login.LogInScreen
 import com.rdfonseca.iwebit.presentation.recents.RecentsScreen
 import com.rdfonseca.iwebit.presentation.support.SupportScreen
@@ -66,12 +68,12 @@ class MainActivity : ComponentActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
         var showSplashScreen by mutableStateOf(true)
         installSplashScreen().apply {
             this.setKeepOnScreenCondition { showSplashScreen }
         }
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             viewModel = hiltViewModel()
 
@@ -213,6 +215,10 @@ fun IWebITApp(
                             navController,
                             viewModel
                         )
+                    }
+
+                    composable(route = Screen.DiagnosticsScreen.route) {
+                        DiagnosticsScreen(navController)
                     }
 
                     composable(

@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollConfiguration
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
@@ -78,12 +80,18 @@ class UninstallAppsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         Log.d(TAG, "onCreate: ${intent.getStringExtra(APPLICATIONS_DATA_EXTRA)}")
         appsToUninstall = intent.getStringExtra(APPLICATIONS_DATA_EXTRA)?.split(",") ?: emptyList()
         setContentUninstallApps()
 
         val updateAppsToUninstallIntentFilter = IntentFilter(ACTION_UPDATE_APPS_TO_UNINSTALL)
-        registerReceiver(brUpdateAppsToUninstall, updateAppsToUninstallIntentFilter)
+        ContextCompat.registerReceiver(
+            this,
+            brUpdateAppsToUninstall,
+            updateAppsToUninstallIntentFilter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
     }
 

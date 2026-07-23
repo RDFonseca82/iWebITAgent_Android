@@ -64,7 +64,8 @@ data class BodyInJsonFull(
     val ipAddress: String,
     val latitude: String,
     val longitude: String,
-    val AndroidProduct: MutableMap<String, Map<String, String>>
+    val AndroidProduct: MutableMap<String, Map<String, String>>,
+    val health: DeviceHealthSnapshot
 )
 
 @Keep
@@ -76,7 +77,8 @@ data class BodyInJsonMin(
     val ipAddress: String,
     val freeBytes: String,
     val availMem: String,
-    val batteryCapacity: String
+    val batteryCapacity: String,
+    val health: DeviceHealthSnapshot
 
 )
 
@@ -165,7 +167,8 @@ suspend fun getBodyInJsonFull(
         ipAddress = ipV4,
         latitude = latitude,
         longitude = longitude,
-        AndroidProduct = getAllApps(context.packageManager)
+        AndroidProduct = getAllApps(context.packageManager),
+        health = DeviceHealthMonitor.collect(context)
     )
 }
 
@@ -192,7 +195,8 @@ fun getBodyInJsonMin(
             StorageManager.UUID_DEFAULT
         ).toString(),
         availMem = meminfo.availMem.toString(),
-        batteryCapacity = getBatteryCapacity(context)
+        batteryCapacity = getBatteryCapacity(context),
+        health = DeviceHealthMonitor.collect(context)
     )
 }
 

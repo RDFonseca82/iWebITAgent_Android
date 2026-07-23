@@ -1,9 +1,9 @@
 [versions]
 coreSplashscreen = "1.0.1"
 googleAccompanists = "0.34.0"
-agp = "8.5.1"
+agp = "8.9.1"
 datastorePreferences = "1.1.1"
-gradle = "8.5.1"
+gradle = "8.9.1"
 hiltAndroid = "2.51"
 hiltAndroidGradlePlugin = "2.51"
 hiltCompiler = "1.2.0"
@@ -24,6 +24,7 @@ okhttp = "4.12.0"
 playServicesLocation = "21.3.0"
 squareupRetrofit = "2.9.0"
 workManager = "2.9.0"
+room = "2.6.1"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "googleAccompanists" }
@@ -41,6 +42,9 @@ androidx-material-icons-extended = { module = "androidx.compose.material:materia
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workManager" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workManager" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "squareupRetrofit" }
 converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "squareupRetrofit" }
 gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }

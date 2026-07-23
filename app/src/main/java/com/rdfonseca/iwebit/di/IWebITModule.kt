@@ -3,7 +3,10 @@ package com.rdfonseca.iwebit.di
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.room.Room
 import com.google.gson.Gson
+import com.rdfonseca.iwebit.data.local.IWebITDatabase
+import com.rdfonseca.iwebit.data.local.sync.SyncQueueDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,6 +38,22 @@ object IWebITModule {
     @Provides
     @Singleton
     fun provideContext(@ApplicationContext appContext: Context): Context = appContext
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext appContext: Context): IWebITDatabase {
+        return Room.databaseBuilder(
+            appContext,
+            IWebITDatabase::class.java,
+            "iwebit.db"
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSyncQueueDao(database: IWebITDatabase): SyncQueueDao {
+        return database.syncQueueDao()
+    }
 
     @Singleton
     @Provides

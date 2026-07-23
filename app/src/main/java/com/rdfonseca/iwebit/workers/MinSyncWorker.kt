@@ -13,14 +13,18 @@ import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.common.createUninstallAppsNotification
 import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.data.remote.IWebITApi
+import com.rdfonseca.iwebit.data.repository.OfflineSyncRepository
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
 import com.rdfonseca.iwebit.data.util.Converters
+import com.rdfonseca.iwebit.domain.model.SyncFlushResult
+import com.rdfonseca.iwebit.domain.model.SyncType
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonMin
 import com.rdfonseca.iwebit.services.SincLocationService
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import java.io.IOException
 
 @HiltWorker
 class MinSyncWorker @AssistedInject constructor(
@@ -28,24 +32,29 @@ class MinSyncWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val userPrefsRepo: UserPrefsRepositoryImpl,
     private val api: IWebITApi,
+    private val offlineSyncRepository: OfflineSyncRepository,
     private val converters: Converters
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
-        logAndWrite(context, "DOING MINIMAL SYNC", "AlarmSync", "makeMinSync")
+        logAndWrite(context, "DOING MINIMAL SYNC", "MinSyncWorker", "doWork")
         val userData = userPrefsRepo.userPreferencesFlow.first()
+        if (userData.uniqueId.isBlank()) return Result.success()
 
-        if (userPrefsRepo.userPreferencesFlow.first().uniqueId.isBlank()) return Result.success()
-
-        try {
-            val body =
+        return try {
+            val payload = converters.toBodyJsonMin(
                 getBodyInJsonMin(context, idsync = userData.idSync, uniqueId = userData.uniqueId)
-            api.postSync(converters.toBodyJsonMin(body))
+            )
+            offlineSyncRepository.enqueue(SyncType.MINIMAL, payload)
+
+            when (offlineSyncRepository.flush()) {
+                SyncFlushResult.RETRY -> return Result.retry()
+                SyncFlushResult.FAILURE -> return Result.failure()
+                SyncFlushResult.SUCCESS -> Unit
+            }
 
             val deviceInfo = api.getDeviceInfo(userData.uniqueId)
-
-            deviceInfo.MessageTxt?.let {
-                if (it != "null" && it.isNotBlank() && it != "0")
-                    createMessageTxt(context, it)
+            deviceInfo.MessageTxt?.takeIf { it != "null" && it.isNotBlank() && it != "0" }?.let {
+                createMessageTxt(context, it)
             }
 
             if (deviceInfo.DeviceLocation == 1) {
@@ -58,41 +67,39 @@ class MinSyncWorker @AssistedInject constructor(
             if (deviceInfo.AndroidPrintScreen == 1) {
                 createRequestedScreenShotNotification(
                     context,
-                    "Requesitada envio de captura de ecrã",
+                    "Requisitado envio de captura de ecrã",
                     waitingForUserConfirmation = true,
                     capturedScreen = false
                 )
             }
 
-            val appsToUninstallJson = api.getAppsToUninstall(uniqueId = userData.uniqueId)
-
-            if (appsToUninstallJson.body() != "null") {
-                val appsToUninstall = converters
-                    .fromUninstallAppsJson(appsToUninstallJson.body()!!)
-                    .map { it.SoftwareName }
-
+            val appsResponse = api.getAppsToUninstall(uniqueId = userData.uniqueId)
+            if (!appsResponse.isSuccessful) throw IOException("HTTP ${appsResponse.code()}")
+            val appsJson = appsResponse.body()
+            if (!appsJson.isNullOrBlank() && appsJson != "null") {
+                val appsToUninstall = converters.fromUninstallAppsJson(appsJson).map { it.SoftwareName }
                 context.sendBroadcast(Intent(Constants.ACTION_UPDATE_APPS_TO_UNINSTALL).apply {
+                    setPackage(context.packageName)
                     putExtra(Constants.APPLICATIONS_DATA_EXTRA, appsToUninstall.joinToString(","))
                 })
-
                 createUninstallAppsNotification(context, appsToUninstall)
             }
 
             logAndWrite(
                 context,
-                "INFO: DEVICE LOCATION -> ${deviceInfo.DeviceLocation} | APPS TO UNINSTALL -> ${appsToUninstallJson.body()}",
-                "AlarmSync",
-                "makeMinSync"
+                "INFO: DEVICE LOCATION -> ${deviceInfo.DeviceLocation} | APPS TO UNINSTALL -> $appsJson",
+                "MinSyncWorker",
+                "doWork"
             )
-
             createSysTrayNotification(context, false)
-        } catch (e: CancellationException) {
-            return Result.success()
-        } catch (e: Exception) {
-            logAndWrite(context, "ERROR: ${e.localizedMessage}", "AlarmSync", "makeMinSync")
+            Result.success()
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logAndWrite(context, "ERROR: ${exception.localizedMessage}", "MinSyncWorker", "doWork")
             createSysTrayNotification(context, true)
+            Result.retry()
         }
-        return Result.success()
     }
 
     private fun createMessageTxt(context: Context, message: String) {
@@ -100,8 +107,7 @@ class MinSyncWorker @AssistedInject constructor(
             context,
             title = "Nova Mensagem",
             message = message,
-            style = NotificationCompat.BigTextStyle()
-                .bigText(message),
+            style = NotificationCompat.BigTextStyle().bigText(message),
             cancelPrevious = true,
             notificationId = Constants.REMOTE_MESSAGE_NOTIFICATION_ID
         )

@@ -7,8 +7,11 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.rdfonseca.iwebit.R
@@ -39,6 +42,12 @@ import java.util.concurrent.TimeUnit
 val pendingIntentFlags =
     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
+val syncNetworkConstraints: Constraints = Constraints.Builder()
+    .setRequiredNetworkType(NetworkType.CONNECTED)
+    .build()
+
+const val SYNC_BACKOFF_SECONDS = 30L
+
 fun setupFullSyncWorker(
     context: Context
 ) {
@@ -49,12 +58,19 @@ fun setupFullSyncWorker(
     val periodicWorkRequest = PeriodicWorkRequestBuilder<FullSyncWorker>(
         1,
         TimeUnit.HOURS
-    ).setInputData(workerData.build())
+    )
+        .setInputData(workerData.build())
+        .setConstraints(syncNetworkConstraints)
+        .setBackoffCriteria(
+            BackoffPolicy.EXPONENTIAL,
+            SYNC_BACKOFF_SECONDS,
+            TimeUnit.SECONDS
+        )
         .build()
 
     WorkManager.getInstance(context).enqueueUniquePeriodicWork(
         WORKER_FULL_SYNC_TAG,
-        ExistingPeriodicWorkPolicy.KEEP,
+        ExistingPeriodicWorkPolicy.UPDATE,
         periodicWorkRequest
     )
 }
@@ -65,11 +81,18 @@ fun setupMinSyncWorker(
     val periodicWorkRequest = PeriodicWorkRequestBuilder<MinSyncWorker>(
         15,
         TimeUnit.MINUTES
-    ).build()
+    )
+        .setConstraints(syncNetworkConstraints)
+        .setBackoffCriteria(
+            BackoffPolicy.EXPONENTIAL,
+            SYNC_BACKOFF_SECONDS,
+            TimeUnit.SECONDS
+        )
+        .build()
 
     WorkManager.getInstance(context).enqueueUniquePeriodicWork(
         WORKER_MIN_SYNC_TAG,
-        ExistingPeriodicWorkPolicy.KEEP,
+        ExistingPeriodicWorkPolicy.UPDATE,
         periodicWorkRequest
     )
 }

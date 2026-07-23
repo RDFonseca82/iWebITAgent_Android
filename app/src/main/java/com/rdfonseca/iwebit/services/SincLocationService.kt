@@ -66,7 +66,7 @@ class SincLocationService : Service() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            createWarningNotification(withError = true)
+            stopWithLocationError("Permissão de localização indisponível")
             return
         }
 
@@ -86,13 +86,17 @@ class SincLocationService : Service() {
         Log.d(TAG, "getLastKnownLocation: $gpsEnabled $networkEnabled")
 
         if (!gpsEnabled && !networkEnabled) {
-            createWarningNotification(withError = true)
+            stopWithLocationError("Serviços de localização desligados")
             return
         }
 
         fusedLocationProviderClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location ->
-                val lat  = location.latitude
+                if (location == null) {
+                    stopWithLocationError("Não foi possível obter a localização atual")
+                    return@addOnSuccessListener
+                }
+                val lat = location.latitude
                 val lng = location.longitude
                 logAndWrite(this@SincLocationService, "$lat $lng", "SincLocationService", "onLocationResult")
 
@@ -115,6 +119,16 @@ class SincLocationService : Service() {
                 stopForeground(true)
                 stopSelf()
             }
+            .addOnFailureListener { exception ->
+                stopWithLocationError(exception.localizedMessage ?: "Falha ao obter localização")
+            }
+    }
+
+    private fun stopWithLocationError(message: String) {
+        logAndWrite(this, message, "SincLocationService", "getLastKnownLocation")
+        createWarningNotification(withError = true)
+        stopForeground(false)
+        stopSelf()
     }
 
     private fun createWarningNotification(withProgress: Boolean = false, withError: Boolean = false): Notification {

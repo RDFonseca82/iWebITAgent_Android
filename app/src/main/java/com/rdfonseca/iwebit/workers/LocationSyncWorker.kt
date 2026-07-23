@@ -4,50 +4,65 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
 import com.rdfonseca.iwebit.common.Constants.LOCATION_DATA_EXTRA
 import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.common.logAndWrite
-import com.rdfonseca.iwebit.data.remote.IWebITApi
+import com.rdfonseca.iwebit.data.repository.OfflineSyncRepository
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
 import com.rdfonseca.iwebit.data.util.Converters
 import com.rdfonseca.iwebit.data.util.getDateHour
 import com.rdfonseca.iwebit.domain.model.BodyInJsonLocation
+import com.rdfonseca.iwebit.domain.model.SyncFlushResult
+import com.rdfonseca.iwebit.domain.model.SyncType
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class LocationSyncWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted params: WorkerParameters,
     private val userPrefsRepo: UserPrefsRepositoryImpl,
-    private val api: IWebITApi,
+    private val offlineSyncRepository: OfflineSyncRepository,
     private val converters: Converters
-): CoroutineWorker(context,params) {
+) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val userData = userPrefsRepo.userPreferencesFlow.first()
-        val (lat, long) = inputData.getString(LOCATION_DATA_EXTRA)
-            ?.split("|") ?: listOf("0.0", "0.0")
-        logAndWrite(context, "SENDING NEW LOCATION: $lat, $long", "LocationSyncWorker", "doWork")
+        if (userData.uniqueId.isBlank()) return Result.success()
 
-        try {
-            api.postSync(converters.toBodyJsonLocation(
+        val locationParts = inputData.getString(LOCATION_DATA_EXTRA)?.split("|")
+        if (locationParts == null || locationParts.size != 2) return Result.failure()
+        val (latitude, longitude) = locationParts
+        logAndWrite(
+            context,
+            "SENDING NEW LOCATION: $latitude, $longitude",
+            "LocationSyncWorker",
+            "doWork"
+        )
+
+        return try {
+            val payload = converters.toBodyJsonLocation(
                 BodyInJsonLocation(
                     userData.uniqueId,
                     userData.idSync,
                     getDateHour(),
-                    lat,
-                    long
+                    latitude,
+                    longitude
                 )
-            ))
-        } catch(e: CancellationException) {
-            return Result.success()
-        } catch (e: Exception) {
-            logAndWrite(context, "ERROR: ${e.localizedMessage}", "LocationSyncWorker", "doWork")
+            )
+            offlineSyncRepository.enqueue(SyncType.LOCATION, payload)
+            when (offlineSyncRepository.flush()) {
+                SyncFlushResult.SUCCESS -> Result.success()
+                SyncFlushResult.RETRY -> Result.retry()
+                SyncFlushResult.FAILURE -> Result.failure()
+            }
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logAndWrite(context, "ERROR: ${exception.localizedMessage}", "LocationSyncWorker", "doWork")
             createSysTrayNotification(context, true)
+            Result.retry()
         }
-
-        return Result.success()
     }
 }
