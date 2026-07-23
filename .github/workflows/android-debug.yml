@@ -26,16 +26,16 @@ jobs:
 
     steps:
       - name: Obter código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Configurar Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Validar e preparar assinatura
         shell: bash
@@ -48,8 +48,19 @@ jobs:
             fi
           done
           keystore_path="$RUNNER_TEMP/iwebit-release.jks"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
+          normalized_base64="$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]')"
+          if ! printf '%s' "$normalized_base64" | base64 --decode > "$keystore_path"; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 não contém Base64 válido." >&2
+            exit 1
+          fi
           test -s "$keystore_path"
+          if ! keytool -list \
+            -keystore "$keystore_path" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Keystore, password ou alias inválido." >&2
+            exit 1
+          fi
           echo "ANDROID_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
 
       - name: Definir versão única da compilação
@@ -98,7 +109,7 @@ jobs:
           PY
 
       - name: Guardar APK como artefacto da execução
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: iWebIT-Agent-${{ env.CI_VERSION_NAME }}-release
           path: |
