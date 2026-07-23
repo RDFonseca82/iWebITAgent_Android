@@ -85,7 +85,11 @@ fun getBatteryCapacity(context: Context): String {
 
 
 private fun isSystemApp(packageInfo: PackageInfo): String {
-    return if (packageInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) {
+    val isSystem = packageInfo.applicationInfo?.let { applicationInfo ->
+        applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+    } ?: false
+
+    return if (isSystem) {
         "System"
     } else {
         "User"
