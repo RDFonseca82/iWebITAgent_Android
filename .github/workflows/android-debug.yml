@@ -79,7 +79,7 @@ jobs:
         shell: bash
         run: |
           echo "CI_VERSION_CODE=$((100000000 + GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT))" >> "$GITHUB_ENV"
-          echo "CI_VERSION_NAME=4.1.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+          echo "CI_VERSION_NAME=4.2.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
 
       - name: Preparar Gradle Wrapper
         run: chmod +x gradlew

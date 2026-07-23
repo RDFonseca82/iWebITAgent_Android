@@ -13,6 +13,9 @@ data class AgentIncident(
     val state: String = "ACTIVE",
     val source: String = "ANDROID_AGENT",
     val observedAt: Long,
+    val id: String = "",
+    val firstObservedAt: Long = observedAt,
+    val resolvedAt: Long? = null,
     val evidence: Map<String, String> = emptyMap()
 )
 

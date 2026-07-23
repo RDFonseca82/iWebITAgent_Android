@@ -2,7 +2,7 @@
   "UniqueId": "ANDROID-EXAMPLE-0001",
   "idsync": "COMPANY-SYNC-ID",
   "TypeSync": 1,
-  "version": "4.1",
+  "version": "4.2",
   "currentTime": "2026-07-23 11:30:00",
   "hostname": "android-device-01",
   "board": "example_board",
@@ -72,15 +72,15 @@
     "foregroundLocationPermission": true,
     "backgroundLocationPermission": true,
     "notificationsEnabled": true,
-    "appVersion": "4.1",
-    "appVersionCode": 401
+    "appVersion": "4.2",
+    "appVersionCode": 402
   },
   "advancedApplications": [
     {
       "packageName": "com.rdfonseca.iwebit",
       "label": "iWebIT Agent",
-      "versionName": "4.1",
-      "versionCode": 401,
+      "versionName": "4.2",
+      "versionCode": 402,
       "firstInstallAt": "2026-07-20T14:10:00Z",
       "lastUpdateAt": "2026-07-23T10:00:00Z",
       "targetSdk": 36,
@@ -158,17 +158,33 @@
       "state": "ACTIVE",
       "source": "ANDROID_AGENT",
       "observedAt": 1784802600000,
+      "id": "4a51ddac-9290-376d-baa2-0d9fd315e9a7",
+      "firstObservedAt": 1784700000000,
+      "resolvedAt": null,
       "evidence": {
         "securityPatch": "2025-10-05",
         "ageDays": "291"
       }
+    },
+    {
+      "code": "ANDROID_NOTIFICATIONS_DISABLED",
+      "severity": "WARNING",
+      "title": "Notificações desativadas",
+      "description": "As notificações da aplicação voltaram a estar ativas.",
+      "state": "RESOLVED",
+      "source": "ANDROID_AGENT",
+      "observedAt": 1784802600000,
+      "id": "031f3718-bf8b-3365-be94-2ed67bfcae5a",
+      "firstObservedAt": 1784600000000,
+      "resolvedAt": 1784802600000,
+      "evidence": {}
     }
   ],
   "supportBundle": {
     "generatedAt": 1784802600000,
     "reason": "REMOTE_REQUEST",
-    "appVersion": "4.1",
-    "appVersionCode": 401,
+    "appVersion": "4.2",
+    "appVersionCode": 402,
     "manufacturer": "Example Manufacturer",
     "model": "Example Phone",
     "androidVersion": "16",
@@ -191,8 +207,8 @@
       "foregroundLocationPermission": true,
       "backgroundLocationPermission": true,
       "notificationsEnabled": true,
-      "appVersion": "4.1",
-      "appVersionCode": 401
+      "appVersion": "4.2",
+      "appVersionCode": 402
     },
     "syncDiagnostics": {
       "pendingCount": 0,
@@ -242,6 +258,9 @@
         "state": "ACTIVE",
         "source": "ANDROID_AGENT",
         "observedAt": 1784802600000,
+        "id": "4a51ddac-9290-376d-baa2-0d9fd315e9a7",
+        "firstObservedAt": 1784700000000,
+        "resolvedAt": null,
         "evidence": {
           "securityPatch": "2025-10-05",
           "ageDays": "291"

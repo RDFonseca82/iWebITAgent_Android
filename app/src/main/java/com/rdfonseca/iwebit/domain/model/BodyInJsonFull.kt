@@ -128,11 +128,17 @@ suspend fun getBodyInJsonFull(
     val health = DeviceHealthMonitor.collect(context)
     val applicationInventory = ApplicationInventoryCollector.collect(context.packageManager)
     val networkDiagnostics = NetworkDiagnosticsCollector.collect(context)
-    val incidents = IncidentDetector.detect(
+    val detectedIncidents = IncidentDetector.detect(
         health = health,
         network = networkDiagnostics,
         securityPatch = Build.VERSION.SECURITY_PATCH,
         syncDiagnostics = syncDiagnostics
+    )
+    val incidents = IncidentLifecycleStore.reconcile(
+        context = context,
+        deviceId = uniqueId.ifBlank { idsync },
+        detected = detectedIncidents,
+        resolvableCodes = IncidentDetectionScope.ALL_CODES
     )
     val supportBundle = if (includeSupportBundle) {
         SupportBundleCollector.collect(
@@ -142,7 +148,7 @@ suspend fun getBodyInJsonFull(
             syncDiagnostics = syncDiagnostics,
             networkDiagnostics = networkDiagnostics,
             applicationInventorySummary = applicationInventory.summary,
-            incidents = incidents
+            incidents = incidents.filter { it.state == "ACTIVE" }
         )
     } else {
         null
@@ -233,7 +239,12 @@ fun getBodyInJsonMin(
         availMem = meminfo.availMem.toString(),
         batteryCapacity = getBatteryCapacity(context),
         health = health,
-        incidents = IncidentDetector.detect(health = health)
+        incidents = IncidentLifecycleStore.reconcile(
+            context = context,
+            deviceId = uniqueId.ifBlank { idsync },
+            detected = IncidentDetector.detect(health = health),
+            resolvableCodes = IncidentDetectionScope.HEALTH_CODES
+        )
     )
 }
 

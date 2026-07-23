@@ -24,8 +24,8 @@ android {
         applicationId = "com.rdfonseca.iwebit"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("ciVersionCode").orNull?.toInt() ?: 401
-        versionName = providers.gradleProperty("ciVersionName").orNull ?: "4.1"
+        versionCode = providers.gradleProperty("ciVersionCode").orNull?.toInt() ?: 402
+        versionName = providers.gradleProperty("ciVersionName").orNull ?: "4.2"
 
         buildConfigField(
             "String",
