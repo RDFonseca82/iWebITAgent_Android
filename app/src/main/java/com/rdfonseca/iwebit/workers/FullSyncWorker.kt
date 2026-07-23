@@ -33,19 +33,29 @@ class FullSyncWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val forceFullSync = inputData.getBoolean(FORCE_FULL_EXTRA, false)
+        val includeSupportBundle = inputData.getBoolean(Constants.SUPPORT_BUNDLE_EXTRA, false)
         val userData = userPrefsRepo.userPreferencesFlow.first()
         if (userData.uniqueId.isBlank()) return Result.success()
 
-        logAndWrite(context, "DOING FULL SYNC: FORCE -> $forceFullSync", "FullSyncWorker", "doWork")
+        logAndWrite(
+            context,
+            "DOING FULL SYNC: FORCE -> $forceFullSync | SUPPORT BUNDLE -> $includeSupportBundle",
+            "FullSyncWorker",
+            "doWork"
+        )
 
         return try {
             if (forceFullSync) createForceFullSyncDone(true)
 
+            val syncDiagnostics = offlineSyncRepository.diagnostics.first()
             val payload = converters.toBodyJsonFull(
                 getBodyInJsonFull(
                     context,
                     idsync = userData.idSync,
-                    uniqueId = userData.uniqueId
+                    uniqueId = userData.uniqueId,
+                    syncDiagnostics = syncDiagnostics,
+                    includeSupportBundle = includeSupportBundle,
+                    supportBundleReason = "REMOTE_REQUEST"
                 )
             )
             offlineSyncRepository.enqueue(SyncType.FULL, payload)

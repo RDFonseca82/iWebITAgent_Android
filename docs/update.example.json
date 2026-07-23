@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "versionCode": 100000011,
+  "versionName": "4.1.1.1",
+  "apkUrl": "https://github.com/RDFonseca82/iWebITAgent_Android/releases/download/auto-update/iwebit-agent.apk",
+  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "fileSize": 19638979,
+  "releaseNotes": "Melhorias de estabilidade e segurança.",
+  "publishedAt": "2026-07-23T12:00:00Z"
+}

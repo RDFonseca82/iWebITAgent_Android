@@ -7,7 +7,6 @@ import android.os.Build
 import android.os.storage.StorageManager
 import androidx.annotation.Keep
 import com.rdfonseca.iwebit.BuildConfig
-import com.rdfonseca.iwebit.common.getAllApps
 import com.rdfonseca.iwebit.common.getBatteryCapacity
 import com.rdfonseca.iwebit.common.getIpV4
 import com.rdfonseca.iwebit.common.getMacAdress
@@ -65,7 +64,12 @@ data class BodyInJsonFull(
     val latitude: String,
     val longitude: String,
     val AndroidProduct: MutableMap<String, Map<String, String>>,
-    val health: DeviceHealthSnapshot
+    val health: DeviceHealthSnapshot,
+    val advancedApplications: List<AdvancedApplicationInfo>,
+    val applicationInventorySummary: ApplicationInventorySummary,
+    val networkDiagnostics: NetworkDiagnostics,
+    val incidents: List<AgentIncident>,
+    val supportBundle: SupportBundle?
 )
 
 @Keep
@@ -78,7 +82,8 @@ data class BodyInJsonMin(
     val freeBytes: String,
     val availMem: String,
     val batteryCapacity: String,
-    val health: DeviceHealthSnapshot
+    val health: DeviceHealthSnapshot,
+    val incidents: List<AgentIncident>
 
 )
 
@@ -98,7 +103,10 @@ suspend fun getBodyInJsonFull(
     idsync: String,
     latitude: String = "",
     longitude: String = "",
-    getHostName: Boolean = false
+    getHostName: Boolean = false,
+    syncDiagnostics: SyncDiagnostics = SyncDiagnostics(),
+    includeSupportBundle: Boolean = false,
+    supportBundleReason: String = "REMOTE_REQUEST"
 ): BodyInJsonFull {
     val ssm =
         context.getSystemService(StorageStatsManager::class.java)
@@ -116,6 +124,28 @@ suspend fun getBodyInJsonFull(
         }
     } else {
         ""
+    }
+    val health = DeviceHealthMonitor.collect(context)
+    val applicationInventory = ApplicationInventoryCollector.collect(context.packageManager)
+    val networkDiagnostics = NetworkDiagnosticsCollector.collect(context)
+    val incidents = IncidentDetector.detect(
+        health = health,
+        network = networkDiagnostics,
+        securityPatch = Build.VERSION.SECURITY_PATCH,
+        syncDiagnostics = syncDiagnostics
+    )
+    val supportBundle = if (includeSupportBundle) {
+        SupportBundleCollector.collect(
+            context = context,
+            reason = supportBundleReason,
+            health = health,
+            syncDiagnostics = syncDiagnostics,
+            networkDiagnostics = networkDiagnostics,
+            applicationInventorySummary = applicationInventory.summary,
+            incidents = incidents
+        )
+    } else {
+        null
     }
 
     return BodyInJsonFull(
@@ -167,8 +197,13 @@ suspend fun getBodyInJsonFull(
         ipAddress = ipV4,
         latitude = latitude,
         longitude = longitude,
-        AndroidProduct = getAllApps(context.packageManager),
-        health = DeviceHealthMonitor.collect(context)
+        AndroidProduct = applicationInventory.toLegacyMap(),
+        health = health,
+        advancedApplications = applicationInventory.applications,
+        applicationInventorySummary = applicationInventory.summary,
+        networkDiagnostics = networkDiagnostics,
+        incidents = incidents,
+        supportBundle = supportBundle
     )
 }
 
@@ -183,6 +218,7 @@ fun getBodyInJsonMin(
     val meminfo = ActivityManager.MemoryInfo()
     val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     am.getMemoryInfo(meminfo)
+    val health = DeviceHealthMonitor.collect(context)
 
 
     return BodyInJsonMin(
@@ -196,7 +232,8 @@ fun getBodyInJsonMin(
         ).toString(),
         availMem = meminfo.availMem.toString(),
         batteryCapacity = getBatteryCapacity(context),
-        health = DeviceHealthMonitor.collect(context)
+        health = health,
+        incidents = IncidentDetector.detect(health = health)
     )
 }
 

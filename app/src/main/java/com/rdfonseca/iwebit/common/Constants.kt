@@ -18,6 +18,7 @@ object Constants {
     const val FORCE_FULL_SYNC_DONE_NOTIFICATION_ID = 4
     const val UNINSTALL_APPS_NOTIFICATION_ID = 5
     const val WARNING_NOTIFICATION_ID = 6
+    const val APP_UPDATE_NOTIFICATION_ID = 7
     const val CHANNEL_ID = "channel1"
     const val CHANNEL_NAME = "IWebITTrayChannel"
 
@@ -40,10 +41,13 @@ object Constants {
     const val APPLICATIONS_DATA_EXTRA = "APPLICATIONS_DATA_EXTRA"
     const val GERENCIADOR_REQUEST_EXTRA = "GERENCIADOR_REQUEST_EXTRA"
     const val FORCE_FULL_EXTRA = "FORCE_FULL_EXTRA"
+    const val SUPPORT_BUNDLE_EXTRA = "SUPPORT_BUNDLE_EXTRA"
 
     const val WORKER_FULL_SYNC_TAG = "FullSyncW»"
     const val WORKER_FORCE_SYNC_TAG = "ForceSyncW»"
     const val WORKER_MIN_SYNC_TAG = "MinSyncW»"
     const val WORKER_LOCATION_SYNC_TAG = "LocationSyncW»"
+    const val WORKER_SUPPORT_BUNDLE_TAG = "SupportBundleSyncW"
+    const val WORKER_APP_UPDATE_TAG = "AppUpdateW"
 
 }

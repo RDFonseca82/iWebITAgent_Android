@@ -18,6 +18,7 @@ data class DeviceInfoDto(
     val MSSQLServer: Any,
     val OperatingSystem_Reboot: Int,
     val OperatingSystem_ShutDown: Int,
+    val SupportBundle: Int = 0,
     val TimeAlive: Int,
     val TimeSync: Int,
     val UniqueID: String

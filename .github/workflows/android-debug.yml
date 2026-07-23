@@ -1,21 +1,33 @@
-name: Compilar APK Debug
+name: Compilar e publicar auto-update
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - master
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: iwebit-auto-update
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: Gerar APK Debug
+  build-and-publish:
+    name: Gerar APK assinado e publicar
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/iwebit-release.jks
 
     steps:
       - name: Obter código
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Configurar Java 17
         uses: actions/setup-java@v4
@@ -26,16 +38,92 @@ jobs:
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Validar e preparar assinatura
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!variable:-}" ]; then
+              echo "GitHub Secret em falta: $variable" >&2
+              exit 1
+            fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+          test -s "$ANDROID_KEYSTORE_PATH"
+
+      - name: Definir versão única da compilação
+        shell: bash
+        run: |
+          echo "CI_VERSION_CODE=$((100000000 + GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT))" >> "$GITHUB_ENV"
+          echo "CI_VERSION_NAME=4.1.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+
       - name: Preparar Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Compilar APK Debug
-        run: ./gradlew assembleDebug
+      - name: Testar e compilar APK release
+        run: >-
+          ./gradlew testDebugUnitTest lintRelease assembleRelease
+          -PciVersionCode=${CI_VERSION_CODE}
+          -PciVersionName=${CI_VERSION_NAME}
 
-      - name: Disponibilizar APK
+      - name: Criar manifesto de atualização
+        shell: bash
+        env:
+          RELEASE_NOTES: ${{ github.event.head_commit.message || format('Compilação automática {0}', github.run_number) }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/iwebit-agent.apk
+          export APK_SHA256="$(sha256sum dist/iwebit-agent.apk | cut -d ' ' -f 1)"
+          export APK_SIZE="$(stat -c '%s' dist/iwebit-agent.apk)"
+          export PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          python3 - <<'PY'
+          import json
+          import os
+
+          manifest = {
+              "schemaVersion": 1,
+              "versionCode": int(os.environ["CI_VERSION_CODE"]),
+              "versionName": os.environ["CI_VERSION_NAME"],
+              "apkUrl": "https://github.com/RDFonseca82/iWebITAgent_Android/releases/download/auto-update/iwebit-agent.apk",
+              "sha256": os.environ["APK_SHA256"],
+              "fileSize": int(os.environ["APK_SIZE"]),
+              "releaseNotes": os.environ.get("RELEASE_NOTES", "Atualização automática iWebIT"),
+              "publishedAt": os.environ["PUBLISHED_AT"],
+          }
+          with open("dist/update.json", "w", encoding="utf-8") as output:
+              json.dump(manifest, output, ensure_ascii=False, indent=2)
+              output.write("\n")
+          PY
+
+      - name: Guardar APK como artefacto da execução
         uses: actions/upload-artifact@v4
         with:
-          name: iWebIT-Agent-4.0-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: iWebIT-Agent-${{ env.CI_VERSION_NAME }}-release
+          path: |
+            dist/iwebit-agent.apk
+            dist/update.json
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
+
+      - name: Publicar rolling release para auto-update
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view auto-update >/dev/null 2>&1; then
+            gh release upload auto-update dist/iwebit-agent.apk --clobber
+            gh release upload auto-update dist/update.json --clobber
+            gh release edit auto-update \
+              --title "iWebIT Auto Update ${CI_VERSION_NAME}" \
+              --notes "Build automático ${CI_VERSION_NAME} (${CI_VERSION_CODE}) do commit ${GITHUB_SHA}." \
+              --latest
+          else
+            gh release create auto-update dist/iwebit-agent.apk \
+              --target "$GITHUB_SHA" \
+              --title "iWebIT Auto Update ${CI_VERSION_NAME}" \
+              --notes "Build automático ${CI_VERSION_NAME} (${CI_VERSION_CODE}) do commit ${GITHUB_SHA}." \
+              --latest
+            gh release upload auto-update dist/update.json
+          fi

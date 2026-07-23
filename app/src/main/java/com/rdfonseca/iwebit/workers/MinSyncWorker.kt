@@ -5,7 +5,11 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.rdfonseca.iwebit.common.Constants
 import com.rdfonseca.iwebit.common.createNotification
 import com.rdfonseca.iwebit.common.createRequestedScreenShotNotification
@@ -70,6 +74,22 @@ class MinSyncWorker @AssistedInject constructor(
                     "Requisitado envio de captura de ecrã",
                     waitingForUserConfirmation = true,
                     capturedScreen = false
+                )
+            }
+
+            if (deviceInfo.SupportBundle == 1) {
+                val supportBundleRequest = OneTimeWorkRequestBuilder<FullSyncWorker>()
+                    .setInputData(
+                        workDataOf(
+                            Constants.FORCE_FULL_EXTRA to false,
+                            Constants.SUPPORT_BUNDLE_EXTRA to true
+                        )
+                    )
+                    .build()
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    Constants.WORKER_SUPPORT_BUNDLE_TAG,
+                    ExistingWorkPolicy.KEEP,
+                    supportBundleRequest
                 )
             }
 

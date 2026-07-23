@@ -1,0 +1,256 @@
+{
+  "UniqueId": "ANDROID-EXAMPLE-0001",
+  "idsync": "COMPANY-SYNC-ID",
+  "TypeSync": 1,
+  "version": "4.1",
+  "currentTime": "2026-07-23 11:30:00",
+  "hostname": "android-device-01",
+  "board": "example_board",
+  "bootLoader": "example-bootloader",
+  "brand": "Example",
+  "device": "example_device",
+  "display": "AP4A.260601.001",
+  "hardware": "example_hardware",
+  "idAndroid": "AP4A.260601.001",
+  "manufacturer": "Example Manufacturer",
+  "model": "Example Phone",
+  "odmSku": "EXAMPLE-ODM-SKU",
+  "product": "example_product",
+  "sku": "EXAMPLE-SKU",
+  "socManufacturer": "Example SoC Manufacturer",
+  "socModel": "Example SoC",
+  "time": "2026-06-01 09:00:00",
+  "type": "user",
+  "user": "android-build",
+  "baseOS": "",
+  "codename": "REL",
+  "incremental": "12345678",
+  "mediaPerformanceClass": "34",
+  "previewSdkInt": "0",
+  "release": "16",
+  "releaseOrCodename": "16",
+  "sdk": "36",
+  "sdkInt": "36",
+  "securityPatch": "2025-10-05",
+  "freeBytes": "53687091200",
+  "totalBytes": "128849018880",
+  "availMem": "4294967296",
+  "lowMemory": "false",
+  "threshold": "268435456",
+  "totalMem": "8589934592",
+  "batteryCapacity": "82%",
+  "macAddress": "02:00:00:00:00:00",
+  "ipAddress": "192.168.1.50",
+  "latitude": "38.7223",
+  "longitude": "-9.1393",
+  "AndroidProduct": {
+    "0": {
+      "Name": "com.rdfonseca.iwebit",
+      "InstallDate": "2026-07-20 14:10:00",
+      "Caption": "User"
+    },
+    "1": {
+      "Name": "com.android.settings",
+      "InstallDate": "2026-06-01 09:00:00",
+      "Caption": "System"
+    }
+  },
+  "health": {
+    "collectedAt": 1784802600000,
+    "batteryLevelPercent": 82,
+    "isCharging": true,
+    "batteryTemperatureCelsius": 31.5,
+    "availableStorageBytes": 53687091200,
+    "totalStorageBytes": 128849018880,
+    "availableMemoryBytes": 4294967296,
+    "totalMemoryBytes": 8589934592,
+    "lowMemory": false,
+    "networkType": "WIFI",
+    "networkValidated": true,
+    "deviceUptimeMillis": 345600000,
+    "locationEnabled": true,
+    "foregroundLocationPermission": true,
+    "backgroundLocationPermission": true,
+    "notificationsEnabled": true,
+    "appVersion": "4.1",
+    "appVersionCode": 401
+  },
+  "advancedApplications": [
+    {
+      "packageName": "com.rdfonseca.iwebit",
+      "label": "iWebIT Agent",
+      "versionName": "4.1",
+      "versionCode": 401,
+      "firstInstallAt": "2026-07-20T14:10:00Z",
+      "lastUpdateAt": "2026-07-23T10:00:00Z",
+      "targetSdk": 36,
+      "applicationType": "User",
+      "category": "PRODUCTIVITY",
+      "enabled": true,
+      "stopped": false,
+      "suspended": false,
+      "installerPackage": "com.android.packageinstaller",
+      "dangerousPermissionsRequested": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "dangerousPermissionsGranted": [
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    {
+      "packageName": "com.android.settings",
+      "label": "Definições",
+      "versionName": "16",
+      "versionCode": 36,
+      "firstInstallAt": "2026-06-01T09:00:00Z",
+      "lastUpdateAt": "2026-06-01T09:00:00Z",
+      "targetSdk": 36,
+      "applicationType": "System",
+      "category": "UNDEFINED",
+      "enabled": true,
+      "stopped": false,
+      "suspended": false,
+      "installerPackage": null,
+      "dangerousPermissionsRequested": [],
+      "dangerousPermissionsGranted": []
+    }
+  ],
+  "applicationInventorySummary": {
+    "total": 125,
+    "system": 92,
+    "user": 33,
+    "disabled": 2,
+    "suspended": 0,
+    "installedOrUpdatedLast30Days": 8
+  },
+  "networkDiagnostics": {
+    "collectedAt": 1784802600000,
+    "endpoint": "https://agent.iwebit.app/",
+    "networkType": "WIFI",
+    "connected": true,
+    "validated": true,
+    "metered": false,
+    "roaming": false,
+    "vpnActive": false,
+    "dnsServers": [
+      "192.168.1.1",
+      "1.1.1.1"
+    ],
+    "dnsResolved": true,
+    "resolvedAddresses": [
+      "203.0.113.20"
+    ],
+    "dnsLatencyMs": 18,
+    "httpsReachable": true,
+    "httpStatusCode": 200,
+    "httpsLatencyMs": 96,
+    "tlsVersion": "TLSv1.3",
+    "error": null
+  },
+  "incidents": [
+    {
+      "code": "ANDROID_SECURITY_PATCH_OUTDATED",
+      "severity": "WARNING",
+      "title": "Patch de segurança desatualizado",
+      "description": "O patch de segurança Android tem mais de seis meses.",
+      "state": "ACTIVE",
+      "source": "ANDROID_AGENT",
+      "observedAt": 1784802600000,
+      "evidence": {
+        "securityPatch": "2025-10-05",
+        "ageDays": "291"
+      }
+    }
+  ],
+  "supportBundle": {
+    "generatedAt": 1784802600000,
+    "reason": "REMOTE_REQUEST",
+    "appVersion": "4.1",
+    "appVersionCode": 401,
+    "manufacturer": "Example Manufacturer",
+    "model": "Example Phone",
+    "androidVersion": "16",
+    "androidSdk": 36,
+    "securityPatch": "2025-10-05",
+    "health": {
+      "collectedAt": 1784802600000,
+      "batteryLevelPercent": 82,
+      "isCharging": true,
+      "batteryTemperatureCelsius": 31.5,
+      "availableStorageBytes": 53687091200,
+      "totalStorageBytes": 128849018880,
+      "availableMemoryBytes": 4294967296,
+      "totalMemoryBytes": 8589934592,
+      "lowMemory": false,
+      "networkType": "WIFI",
+      "networkValidated": true,
+      "deviceUptimeMillis": 345600000,
+      "locationEnabled": true,
+      "foregroundLocationPermission": true,
+      "backgroundLocationPermission": true,
+      "notificationsEnabled": true,
+      "appVersion": "4.1",
+      "appVersionCode": 401
+    },
+    "syncDiagnostics": {
+      "pendingCount": 0,
+      "failedCount": 0,
+      "lastAttemptAt": 1784802500000,
+      "lastSuccessAt": 1784802500000,
+      "lastError": null
+    },
+    "networkDiagnostics": {
+      "collectedAt": 1784802600000,
+      "endpoint": "https://agent.iwebit.app/",
+      "networkType": "WIFI",
+      "connected": true,
+      "validated": true,
+      "metered": false,
+      "roaming": false,
+      "vpnActive": false,
+      "dnsServers": [
+        "192.168.1.1",
+        "1.1.1.1"
+      ],
+      "dnsResolved": true,
+      "resolvedAddresses": [
+        "203.0.113.20"
+      ],
+      "dnsLatencyMs": 18,
+      "httpsReachable": true,
+      "httpStatusCode": 200,
+      "httpsLatencyMs": 96,
+      "tlsVersion": "TLSv1.3",
+      "error": null
+    },
+    "applicationInventorySummary": {
+      "total": 125,
+      "system": 92,
+      "user": 33,
+      "disabled": 2,
+      "suspended": 0,
+      "installedOrUpdatedLast30Days": 8
+    },
+    "activeIncidents": [
+      {
+        "code": "ANDROID_SECURITY_PATCH_OUTDATED",
+        "severity": "WARNING",
+        "title": "Patch de segurança desatualizado",
+        "description": "O patch de segurança Android tem mais de seis meses.",
+        "state": "ACTIVE",
+        "source": "ANDROID_AGENT",
+        "observedAt": 1784802600000,
+        "evidence": {
+          "securityPatch": "2025-10-05",
+          "ageDays": "291"
+        }
+      }
+    ],
+    "recentLogs": [
+      "2026-07-23 11:29:00 | MinSyncWorker:doWork --> DOING MINIMAL SYNC",
+      "2026-07-23 11:29:02 | FullSyncWorker:doWork --> DOING FULL SYNC: FORCE -> false | SUPPORT BUNDLE -> true"
+    ]
+  }
+}
