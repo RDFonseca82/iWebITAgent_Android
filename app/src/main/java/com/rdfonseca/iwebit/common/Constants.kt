@@ -3,7 +3,7 @@ package com.rdfonseca.iwebit.common
 object Constants {
     const val USER_PREFERENCES_NAME = "user_preferences"
     const val SITE_URL = "https://www.iwebit.app/"
-    const val PLATAFORM_URL = "https://www.iwebit.app/login.php"
+    const val PLATAFORM_URL = "https://intranet.iwebit.app/login.php"
     const val BASE_URL = "https://agent.iwebit.app/"
     const val DOMAIN_URL = "https://agent.iwebit.app/"
     const val PRIVACY_POLICY_URL = "https://www.iwebit.app/privacypolicy.php"
