@@ -48,7 +48,19 @@ jobs:
             fi
           done
           keystore_path="$RUNNER_TEMP/iwebit-release.jks"
-          normalized_base64="$(printf '%s' "$ANDROID_KEYSTORE_BASE64" | tr -d '[:space:]')"
+          normalized_base64="$(
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" |
+              tr -d '[:space:]' |
+              tr -cd 'A-Za-z0-9+/='
+          )"
+          case $((${#normalized_base64} % 4)) in
+            2) normalized_base64="${normalized_base64}==" ;;
+            3) normalized_base64="${normalized_base64}=" ;;
+          esac
+          if [ "${#normalized_base64}" -lt 1000 ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 está vazio, incompleto ou não contém o ficheiro Base64." >&2
+            exit 1
+          fi
           if ! printf '%s' "$normalized_base64" | base64 --decode > "$keystore_path"; then
             echo "::error::ANDROID_KEYSTORE_BASE64 não contém Base64 válido." >&2
             exit 1
