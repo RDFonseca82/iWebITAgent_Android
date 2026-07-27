@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
+import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.update.scheduleAppUpdateChecks
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -25,6 +26,7 @@ class IWebITApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        logAndWrite(this, "Agente iniciado; versão ${BuildConfig.VERSION_NAME}", "IWebITApplication", "onCreate")
         applicationScope.launch {
             userPrefsRepository.ensurePermanentIdentity()
         }

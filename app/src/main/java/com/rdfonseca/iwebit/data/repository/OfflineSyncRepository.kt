@@ -1,5 +1,7 @@
 package com.rdfonseca.iwebit.data.repository
 
+import android.content.Context
+import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.data.local.sync.PendingSyncEntity
 import com.rdfonseca.iwebit.data.local.sync.SyncQueueDao
 import com.rdfonseca.iwebit.data.local.sync.SyncStatusEntity
@@ -14,9 +16,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 @Singleton
 class OfflineSyncRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: IWebITApi,
     private val dao: SyncQueueDao
 ) {
@@ -36,6 +40,7 @@ class OfflineSyncRepository @Inject constructor(
     }
 
     suspend fun enqueue(type: SyncType, payload: String) = queueMutex.withLock {
+        logAndWrite(context, "A colocar sincronização ${type.key} na fila offline", "OfflineSyncRepository", "enqueue")
         dao.upsert(
             PendingSyncEntity(
                 syncType = type.key,
@@ -58,6 +63,7 @@ class OfflineSyncRepository @Inject constructor(
 
         for (item in dao.getPending()) {
             val attemptedAt = System.currentTimeMillis()
+            logAndWrite(context, "A enviar sincronização ${item.syncType} da fila offline", "OfflineSyncRepository", "flush")
             dao.recordAttempt(item.syncType, attemptedAt)
             updateStatus(lastAttemptAt = attemptedAt)
 
@@ -66,16 +72,19 @@ class OfflineSyncRepository @Inject constructor(
             } catch (exception: IOException) {
                 val message = exception.localizedMessage ?: "Rede indisponível"
                 dao.updateOutcome(item.syncType, message, PendingSyncEntity.STATE_PENDING)
+                logAndWrite(context, "Sincronização ${item.syncType} adiada: $message", "OfflineSyncRepository", "flush", "WARN")
                 updateStatus(lastAttemptAt = attemptedAt, error = message)
                 return SyncFlushResult.RETRY
             } catch (exception: Exception) {
                 val message = exception.localizedMessage ?: exception.javaClass.simpleName
                 dao.updateOutcome(item.syncType, message, PendingSyncEntity.STATE_PENDING)
+                logAndWrite(context, "Sincronização ${item.syncType} adiada: $message", "OfflineSyncRepository", "flush", "WARN")
                 updateStatus(lastAttemptAt = attemptedAt, error = message)
                 return SyncFlushResult.RETRY
             }
 
             if (response.isSuccessful) {
+                logAndWrite(context, "Sincronização ${item.syncType} concluída", "OfflineSyncRepository", "flush")
                 dao.delete(item.syncType)
                 updateStatus(
                     lastAttemptAt = attemptedAt,
@@ -93,6 +102,7 @@ class OfflineSyncRepository @Inject constructor(
                     append(it)
                 }
             }
+            logAndWrite(context, "Sincronização ${item.syncType} rejeitada: $message", "OfflineSyncRepository", "flush", "ERROR")
             val retryable = response.code() == 408 || response.code() == 429 || response.code() >= 500
             dao.updateOutcome(
                 item.syncType,

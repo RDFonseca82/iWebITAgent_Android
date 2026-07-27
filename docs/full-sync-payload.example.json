@@ -2,7 +2,7 @@
   "UniqueId": "ANDROID-EXAMPLE-0001",
   "idsync": "COMPANY-SYNC-ID",
   "TypeSync": 1,
-  "version": "4.3",
+  "version": "4.4",
   "currentTime": "2026-07-23 11:30:00",
   "hostname": "android-device-01",
   "board": "example_board",
@@ -72,15 +72,15 @@
     "foregroundLocationPermission": true,
     "backgroundLocationPermission": true,
     "notificationsEnabled": true,
-    "appVersion": "4.3",
-    "appVersionCode": 403
+    "appVersion": "4.4",
+    "appVersionCode": 404
   },
   "advancedApplications": [
     {
       "packageName": "com.rdfonseca.iwebit",
       "label": "iWebIT Agent",
-      "versionName": "4.3",
-      "versionCode": 403,
+      "versionName": "4.4",
+      "versionCode": 404,
       "firstInstallAt": "2026-07-20T14:10:00Z",
       "lastUpdateAt": "2026-07-23T10:00:00Z",
       "targetSdk": 36,
@@ -147,7 +147,8 @@
     "httpStatusCode": 200,
     "httpsLatencyMs": 96,
     "tlsVersion": "TLSv1.3",
-    "error": null
+    "error": null,
+    "outboundIpAddress": "192.168.1.50"
   },
   "incidents": [
     {
@@ -183,8 +184,8 @@
   "supportBundle": {
     "generatedAt": 1784802600000,
     "reason": "REMOTE_REQUEST",
-    "appVersion": "4.3",
-    "appVersionCode": 403,
+    "appVersion": "4.4",
+    "appVersionCode": 404,
     "manufacturer": "Example Manufacturer",
     "model": "Example Phone",
     "androidVersion": "16",
@@ -207,8 +208,8 @@
       "foregroundLocationPermission": true,
       "backgroundLocationPermission": true,
       "notificationsEnabled": true,
-      "appVersion": "4.3",
-      "appVersionCode": 403
+      "appVersion": "4.4",
+      "appVersionCode": 404
     },
     "syncDiagnostics": {
       "pendingCount": 0,
@@ -239,7 +240,8 @@
       "httpStatusCode": 200,
       "httpsLatencyMs": 96,
       "tlsVersion": "TLSv1.3",
-      "error": null
+      "error": null,
+    "outboundIpAddress": "192.168.1.50"
     },
     "applicationInventorySummary": {
       "total": 125,

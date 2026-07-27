@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -29,10 +30,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.rdfonseca.iwebit.common.cancelAllNotifications
@@ -40,11 +43,11 @@ import com.rdfonseca.iwebit.domain.model.DeviceHealthSnapshot
 import com.rdfonseca.iwebit.presentation.Screen
 import com.rdfonseca.iwebit.presentation.components.DefaultCenteredTopBar
 import com.rdfonseca.iwebit.presentation.components.DefaultScaffoldWithNavDrawer
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun DiagnosticsScreen(
@@ -72,18 +75,12 @@ fun DiagnosticsScreen(
             viewModel.logOut {
                 cancelAllNotifications(context)
                 navController.navigate(Screen.LogInScreen.route) {
-                    popUpTo(navController.graph.startDestinationId) {
-                        inclusive = true
-                    }
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                 }
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
             DefaultCenteredTopBar(
                 onNavigationClick = { scope.launch { drawerState.open() } },
                 actions = {
@@ -97,13 +94,11 @@ fun DiagnosticsScreen(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                item {
-                    HealthSummaryCard(state.health, state.sync.failedCount, state.sync.pendingCount)
-                }
+                item { HealthSummaryCard(state.health, state.sync.failedCount, state.sync.pendingCount) }
                 item {
                     DiagnosticSection(
-                        title = "Sincronização",
-                        rows = listOf(
+                        "Sincronização",
+                        listOf(
                             "Pendentes" to state.sync.pendingCount.toString(),
                             "Falhadas" to state.sync.failedCount.toString(),
                             "Última tentativa" to formatTimestamp(state.sync.lastAttemptAt),
@@ -114,21 +109,22 @@ fun DiagnosticsScreen(
                 }
                 item {
                     DiagnosticSection(
-                        title = "Dispositivo",
-                        rows = listOf(
+                        "Dispositivo",
+                        listOf(
                             "Empresa" to state.user.companyName.ifBlank { "Não associada" },
                             "ID Sync" to state.user.idSync.ifBlank { "—" },
                             "Versão" to "${state.health.appVersion} (${state.health.appVersionCode})",
                             "Uptime" to formatDuration(state.health.deviceUptimeMillis),
                             "Bateria" to formatBattery(state.health),
-                            "Temperatura" to state.health.batteryTemperatureCelsius?.let { "%.1f °C".format(it) }.orEmpty().ifBlank { "—" }
+                            "Temperatura" to state.health.batteryTemperatureCelsius
+                                ?.let { "%.1f °C".format(it) }.orEmpty().ifBlank { "—" }
                         )
                     )
                 }
                 item {
                     DiagnosticSection(
-                        title = "Recursos",
-                        rows = listOf(
+                        "Recursos",
+                        listOf(
                             "Armazenamento livre" to formatBytes(state.health.availableStorageBytes),
                             "Armazenamento total" to formatBytes(state.health.totalStorageBytes),
                             "Memória livre" to formatBytes(state.health.availableMemoryBytes),
@@ -139,10 +135,14 @@ fun DiagnosticsScreen(
                 }
                 item {
                     DiagnosticSection(
-                        title = "Conectividade e permissões",
-                        rows = listOf(
+                        "Conectividade e permissões",
+                        listOf(
                             "Rede" to state.health.networkType,
+                            "IP de saída" to (state.network?.outboundIpAddress ?: "A obter…"),
                             "Internet validada" to yesNo(state.health.networkValidated),
+                            "Acesso a agent.iwebit.app" to state.network?.httpsReachable?.let(::yesNo).orEmpty().ifBlank { "A testar…" },
+                            "Estado HTTP" to (state.network?.httpStatusCode?.toString() ?: "—"),
+                            "Latência HTTPS" to state.network?.httpsLatencyMs?.let { "$it ms" }.orEmpty().ifBlank { "—" },
                             "Localização ativa" to yesNo(state.health.locationEnabled),
                             "Permissão de localização" to yesNo(state.health.foregroundLocationPermission),
                             "Localização em background" to yesNo(state.health.backgroundLocationPermission),
@@ -157,9 +157,20 @@ fun DiagnosticsScreen(
                             scope.launch { snackbarHostState.showSnackbar("Sincronização agendada") }
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Sincronizar agora")
-                    }
+                    ) { Text("Sincronizar agora") }
+                }
+                item {
+                    Text(
+                        "Logs do agente (${state.logs.size} mais recentes)",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                if (state.logs.isEmpty()) {
+                    item { Text("Ainda não existem registos.") }
+                } else {
+                    items(state.logs.asReversed()) { line -> LogLine(line) }
                 }
                 item { Spacer(Modifier.height(12.dp)) }
             }
@@ -182,11 +193,8 @@ private fun HealthSummaryCard(health: DeviceHealthSnapshot, failed: Int, pending
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (healthy) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.errorContainer
-            }
+            containerColor = if (healthy) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.errorContainer
         )
     ) {
         Column(Modifier.padding(16.dp)) {
@@ -211,16 +219,31 @@ private fun DiagnosticSection(title: String, rows: List<Pair<String, String>>) {
             Spacer(Modifier.height(8.dp))
             rows.forEach { (label, value) ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Text(label, modifier = Modifier.weight(0.46f), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(value, modifier = Modifier.weight(0.54f), fontWeight = FontWeight.Medium)
+                    Text(label, Modifier.weight(0.46f), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SelectionContainer {
+                        Text(value, Modifier.weight(0.54f), fontWeight = FontWeight.Medium)
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun LogLine(line: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        SelectionContainer {
+            Text(
+                line,
+                modifier = Modifier.padding(10.dp),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
         }
     }
 }
@@ -242,6 +265,5 @@ private fun formatDuration(millis: Long): String {
 }
 private fun formatBytes(bytes: Long): String {
     if (bytes < 0) return "—"
-    val gib = bytes / 1024.0 / 1024.0 / 1024.0
-    return "%.2f GB".format(gib)
+    return "%.2f GB".format(bytes / 1024.0 / 1024.0 / 1024.0)
 }

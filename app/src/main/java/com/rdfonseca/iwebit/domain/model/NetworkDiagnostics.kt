@@ -6,13 +6,15 @@ import android.net.NetworkCapabilities
 import android.os.SystemClock
 import androidx.annotation.Keep
 import com.rdfonseca.iwebit.common.Constants
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.URI
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.net.InetAddress
-import java.net.URI
-import java.util.concurrent.TimeUnit
 
 @Keep
 data class NetworkDiagnostics(
@@ -32,7 +34,8 @@ data class NetworkDiagnostics(
     val httpStatusCode: Int?,
     val httpsLatencyMs: Long?,
     val tlsVersion: String?,
-    val error: String?
+    val error: String?,
+    val outboundIpAddress: String? = null
 )
 
 object NetworkDiagnosticsCollector {
@@ -56,9 +59,7 @@ object NetworkDiagnosticsCollector {
         val dnsStartedAt = SystemClock.elapsedRealtime()
         val resolvedAddresses = if (host.isNotBlank()) {
             runCatching {
-                InetAddress.getAllByName(host)
-                    .mapNotNull { it.hostAddress }
-                    .distinct()
+                InetAddress.getAllByName(host).mapNotNull { it.hostAddress }.distinct()
             }.getOrElse {
                 errors += "DNS: ${it.safeMessage()}"
                 emptyList()
@@ -67,11 +68,15 @@ object NetworkDiagnosticsCollector {
             errors += "DNS: endpoint inválido"
             emptyList()
         }
-        val dnsLatency = if (host.isNotBlank()) {
-            SystemClock.elapsedRealtime() - dnsStartedAt
-        } else {
-            null
-        }
+        val dnsLatency = if (host.isNotBlank()) SystemClock.elapsedRealtime() - dnsStartedAt else null
+        val outboundIpAddress = if (host.isNotBlank()) {
+            runCatching {
+                DatagramSocket().use { socket ->
+                    socket.connect(InetSocketAddress(host, 443))
+                    socket.localAddress?.hostAddress
+                }
+            }.getOrNull()
+        } else null
 
         var httpStatus: Int? = null
         var httpsLatency: Long? = null
@@ -91,30 +96,18 @@ object NetworkDiagnosticsCollector {
         }
 
         NetworkDiagnostics(
-            collectedAt = System.currentTimeMillis(),
-            endpoint = endpoint,
-            networkType = capabilities.toNetworkType(),
-            connected = capabilities != null,
-            validated = capabilities?.hasCapability(
-                NetworkCapabilities.NET_CAPABILITY_VALIDATED
-            ) == true,
+            collectedAt = System.currentTimeMillis(), endpoint = endpoint,
+            networkType = capabilities.toNetworkType(), connected = capabilities != null,
+            validated = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true,
             metered = connectivityManager.isActiveNetworkMetered,
-            roaming = capabilities?.hasCapability(
-                NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING
-            ) == false,
+            roaming = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_ROAMING) == false,
             vpnActive = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true,
-            dnsServers = linkProperties?.dnsServers
-                ?.mapNotNull { it.hostAddress }
-                ?.distinct()
-                .orEmpty(),
-            dnsResolved = resolvedAddresses.isNotEmpty(),
-            resolvedAddresses = resolvedAddresses,
-            dnsLatencyMs = dnsLatency,
-            httpsReachable = httpsReachable,
-            httpStatusCode = httpStatus,
-            httpsLatencyMs = httpsLatency,
-            tlsVersion = tlsVersion,
-            error = errors.takeIf { it.isNotEmpty() }?.joinToString(" | ")
+            dnsServers = linkProperties?.dnsServers?.mapNotNull { it.hostAddress }?.distinct().orEmpty(),
+            dnsResolved = resolvedAddresses.isNotEmpty(), resolvedAddresses = resolvedAddresses,
+            dnsLatencyMs = dnsLatency, httpsReachable = httpsReachable,
+            httpStatusCode = httpStatus, httpsLatencyMs = httpsLatency, tlsVersion = tlsVersion,
+            error = errors.takeIf { it.isNotEmpty() }?.joinToString(" | "),
+            outboundIpAddress = outboundIpAddress
         )
     }
 
@@ -128,6 +121,5 @@ object NetworkDiagnosticsCollector {
     }
 
     private fun Throwable.safeMessage(): String =
-        localizedMessage?.take(160)?.replace(Regex("[\\r\\n]+"), " ")
-            ?: javaClass.simpleName
+        localizedMessage?.take(160)?.replace(Regex("[\\r\\n]+"), " ") ?: javaClass.simpleName
 }

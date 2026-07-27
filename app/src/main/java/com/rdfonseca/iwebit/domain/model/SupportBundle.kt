@@ -4,8 +4,7 @@ import android.content.Context
 import android.os.Build
 import androidx.annotation.Keep
 import com.rdfonseca.iwebit.BuildConfig
-import com.rdfonseca.iwebit.common.Constants
-import java.io.File
+import com.rdfonseca.iwebit.common.readRecentAgentLogs
 
 @Keep
 data class SupportBundle(
@@ -61,19 +60,10 @@ object SupportBundleCollector {
     )
 
     private fun readRecentLogs(context: Context): List<String> {
-        val logFile = context.getExternalFilesDir(null)?.let {
-            File(it, Constants.LOG_FILE_NAME)
-        } ?: return emptyList()
-
-        return runCatching {
-            if (!logFile.isFile) return@runCatching emptyList()
-            logFile.readLines()
-                .takeLast(MAX_LOG_LINES)
-                .map { line ->
-                    secretPattern.replace(line.take(MAX_LOG_LINE_LENGTH)) { match ->
-                        "${match.groupValues[1]}${match.groupValues[2]}<redacted>"
-                    }
-                }
-        }.getOrDefault(emptyList())
+        return readRecentAgentLogs(context, MAX_LOG_LINES).map { line ->
+            secretPattern.replace(line.take(MAX_LOG_LINE_LENGTH)) { match ->
+                "${match.groupValues[1]}${match.groupValues[2]}<redacted>"
+            }
+        }
     }
 }

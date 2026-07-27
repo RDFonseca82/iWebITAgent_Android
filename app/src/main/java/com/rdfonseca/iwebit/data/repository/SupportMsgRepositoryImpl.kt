@@ -1,7 +1,6 @@
 package com.rdfonseca.iwebit.data.repository
 
 import android.content.Context
-import android.util.Log
 import com.rdfonseca.iwebit.common.Constants.HTTP_EXCEPTION_MESSAGE
 import com.rdfonseca.iwebit.common.Constants.IO_EXCEPTION_MESSAGE
 import com.rdfonseca.iwebit.common.Constants.NULL_POINTER_EXCEPTION_MESSAGE
@@ -16,7 +15,6 @@ import com.rdfonseca.iwebit.domain.model.CompanyDeviceInfo
 import com.rdfonseca.iwebit.domain.model.SupportMsg
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonFull
 import com.rdfonseca.iwebit.domain.repository.SupportMsgRepository
-import com.rdfonseca.iwebit.presentation.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -92,7 +90,7 @@ class SupportMsgRepositoryImpl(
             val companyInfoDto = api.getCompanyInfo(idSync)
 
             val uniqueId = companyInfoDto.generateUniqueId(uuid)
-            Log.d(TAG, "logIn: HERE 0")
+            logAndWrite(context, "IDSync validado; a recolher inventário inicial", "SupportMsgRepositoryImpl", "logIn")
             val bodyInJsonFull = withContext(Dispatchers.IO) {
                 getBodyInJsonFull(
                     context,
@@ -101,7 +99,7 @@ class SupportMsgRepositoryImpl(
                     getHostName = true
                 )
             }
-            Log.d(TAG, "logIn: HERE 1")
+            logAndWrite(context, "Inventário inicial recolhido; a associar dispositivo", "SupportMsgRepositoryImpl", "logIn")
             api.postSync(converters.toBodyJsonFull(bodyInJsonFull))
             try {
                 emit(
@@ -116,6 +114,7 @@ class SupportMsgRepositoryImpl(
                         )
                     )
                 )
+                logAndWrite(context, "Dispositivo associado com sucesso", "SupportMsgRepositoryImpl", "logIn")
             } catch (e: Exception) {
                 throw Exception("Deu barraca aqui, ${companyInfoDto.IdCompany} $idSync ")
             }

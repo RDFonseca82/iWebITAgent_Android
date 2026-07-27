@@ -15,6 +15,7 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import com.rdfonseca.iwebit.common.Constants.BASE_URL
 import com.rdfonseca.iwebit.common.Constants.DOMAIN_URL
+import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.data.remote.IWebITApi
 import com.rdfonseca.iwebit.data.remote.IWebITDomainApi
 import com.rdfonseca.iwebit.data.repository.SupportMsgRepositoryImpl
@@ -101,10 +102,34 @@ object IWebITModule {
 
     @Provides
     @Singleton
-    fun provideIWebITApi(): IWebITApi {
+    fun provideIWebITApi(@ApplicationContext appContext: Context): IWebITApi {
         val client = OkHttpClient.Builder()
             .readTimeout(1, TimeUnit.MINUTES)
             .connectTimeout(1, TimeUnit.MINUTES)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val startedAt = System.nanoTime()
+                try {
+                    val response = chain.proceed(request)
+                    val elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)
+                    logAndWrite(
+                        appContext,
+                        "HTTP ${request.method} ${request.url.host}${request.url.encodedPath} -> ${response.code} (${elapsedMs}ms)",
+                        "IWebITModule",
+                        "http"
+                    )
+                    response
+                } catch (error: Exception) {
+                    logAndWrite(
+                        appContext,
+                        "HTTP ${request.method} ${request.url.host}${request.url.encodedPath} falhou: ${error.javaClass.simpleName}",
+                        "IWebITModule",
+                        "http",
+                        "ERROR"
+                    )
+                    throw error
+                }
+            }
             .build()
 
         return Retrofit.Builder()
@@ -118,10 +143,34 @@ object IWebITModule {
 
     @Provides
     @Singleton
-    fun provideIWebITDomainApi(): IWebITDomainApi {
+    fun provideIWebITDomainApi(@ApplicationContext appContext: Context): IWebITDomainApi {
         val client = OkHttpClient.Builder()
             .readTimeout(1, TimeUnit.MINUTES)
             .connectTimeout(1, TimeUnit.MINUTES)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val startedAt = System.nanoTime()
+                try {
+                    val response = chain.proceed(request)
+                    val elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)
+                    logAndWrite(
+                        appContext,
+                        "HTTP ${request.method} ${request.url.host}${request.url.encodedPath} -> ${response.code} (${elapsedMs}ms)",
+                        "IWebITModule",
+                        "http"
+                    )
+                    response
+                } catch (error: Exception) {
+                    logAndWrite(
+                        appContext,
+                        "HTTP ${request.method} ${request.url.host}${request.url.encodedPath} falhou: ${error.javaClass.simpleName}",
+                        "IWebITModule",
+                        "http",
+                        "ERROR"
+                    )
+                    throw error
+                }
+            }
             .build()
 
         return Retrofit.Builder()

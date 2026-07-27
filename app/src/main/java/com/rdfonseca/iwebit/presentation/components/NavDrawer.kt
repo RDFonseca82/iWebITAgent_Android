@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,9 +40,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -55,6 +58,8 @@ import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.Constants.PLAYSTORE_APP_URL
 import com.rdfonseca.iwebit.common.Constants.PRIVACY_POLICY_URL
 import com.rdfonseca.iwebit.common.Constants.SITE_URL
+import com.rdfonseca.iwebit.common.logAndWrite
+import com.rdfonseca.iwebit.presentation.LocalUserPreferences
 import com.rdfonseca.iwebit.presentation.Screen
 import com.rdfonseca.iwebit.presentation.ui.theme.Blue100
 import com.rdfonseca.iwebit.presentation.ui.theme.Blue900
@@ -78,7 +83,12 @@ fun DefaultScaffoldWithNavDrawer(
 ) {
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val idSync = LocalUserPreferences.current.idSync
     var showDialog by rememberSaveable { mutableStateOf(false) }
+    var protectedAction by rememberSaveable { mutableStateOf<String?>(null) }
+    var accessCode by rememberSaveable { mutableStateOf("") }
+    var accessError by rememberSaveable { mutableStateOf("") }
     val multiplePermissionsState = rememberMultiplePermissionsState(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -96,20 +106,28 @@ fun DefaultScaffoldWithNavDrawer(
                 HorizontalDivider()
                 DrawerBody(
                     onItemClick = { item ->
+                        logAndWrite(context, "Ação de menu selecionada: ${item.id}", "NavDrawer", "onItemClick")
                         scope.launch {
                             when (item.id) {
                                 Screen.DefinitionsScreen.route,
-                                Screen.DiagnosticsScreen.route,
                                 Screen.RecentsScreen.route,
                                 Screen.SupportScreen.route,
                                 Screen.WebPlatformScreen.route -> {
                                     drawerState.close()
+                                    if (navController.currentDestination?.route == Screen.DiagnosticsScreen.route) {
+                                        navController.popBackStack()
+                                    }
                                     navController.navigateIfNotAlready(item.id)
                                 }
 
                                 "site" -> uriHandler.openUri(SITE_URL)
                                 "rateapp" -> uriHandler.openUri(PLAYSTORE_APP_URL)
-                                "logout" -> showDialog = true
+                                Screen.DiagnosticsScreen.route, "logout" -> {
+                                    drawerState.close()
+                                    accessCode = ""
+                                    accessError = ""
+                                    protectedAction = item.id
+                                }
                             }
                         }
                     },
@@ -129,6 +147,62 @@ fun DefaultScaffoldWithNavDrawer(
             content(it)
         }
 
+        protectedAction?.let { action ->
+            DialogM3(
+                onDismissRequest = { protectedAction = null },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (idSync.isNotBlank() && accessCode.trim() == idSync.trim()) {
+                            logAndWrite(
+                                context,
+                                "Acesso protegido autorizado: $action",
+                                "NavDrawer",
+                                "accessGate"
+                            )
+                            protectedAction = null
+                            accessCode = ""
+                            if (action == Screen.DiagnosticsScreen.route) {
+                                navController.navigateIfNotAlready(action)
+                            } else {
+                                showDialog = true
+                            }
+                        } else {
+                            accessError = "Código IDSync incorreto"
+                            logAndWrite(
+                                context,
+                                "Acesso protegido recusado: $action",
+                                "NavDrawer",
+                                "accessGate",
+                                "WARN"
+                            )
+                        }
+                    }) { Text("Validar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { protectedAction = null }) { Text("Cancelar") }
+                },
+                title = {
+                    Text(if (action == "logout") "Autorizar logout" else "Acesso ao diagnóstico")
+                },
+                text = {
+                    OutlinedTextField(
+                        value = accessCode,
+                        onValueChange = {
+                            accessCode = it.replace("\n", "")
+                            accessError = ""
+                        },
+                        label = { Text("Código IDSync") },
+                        supportingText = {
+                            if (accessError.isNotBlank()) Text(accessError)
+                        },
+                        isError = accessError.isNotBlank(),
+                        visualTransformation = PasswordVisualTransformation(),
+                        singleLine = true
+                    )
+                },
+                containerColor = if (isDarkTheme()) Blue900 else Blue100
+            )
+        }
         if (showDialog)
             DialogM3(
                 onDismissRequest = { showDialog = false },

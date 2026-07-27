@@ -9,6 +9,7 @@ import androidx.work.WorkerParameters
 import com.rdfonseca.iwebit.common.Constants.APP_UPDATE_NOTIFICATION_ID
 import com.rdfonseca.iwebit.common.createNotification
 import com.rdfonseca.iwebit.common.createNotificationChannel
+import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.common.pendingIntentFlags
 import com.rdfonseca.iwebit.presentation.update.UpdateInstallActivity
 import com.rdfonseca.iwebit.update.AppUpdateManager
@@ -20,9 +21,14 @@ class AppUpdateWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
+        logAndWrite(applicationContext, "A verificar atualizações", "AppUpdateWorker", "doWork")
         return try {
         val manager = AppUpdateManager(applicationContext)
-        val update = manager.findUpdate() ?: return Result.success()
+        val update = manager.findUpdate() ?: run {
+            logAndWrite(applicationContext, "Sem atualizações disponíveis", "AppUpdateWorker", "doWork")
+            return Result.success()
+        }
+        logAndWrite(applicationContext, "Atualização ${update.versionName} encontrada", "AppUpdateWorker", "doWork")
         val apk = manager.downloadAndValidate(update)
         createNotificationChannel(applicationContext)
 
@@ -58,10 +64,13 @@ class AppUpdateWorker(
             cancelPrevious = true,
             autoCancel = false
         )
+        logAndWrite(applicationContext, "Atualização ${update.versionName} pronta para instalar", "AppUpdateWorker", "doWork")
         Result.success()
         } catch (error: IOException) {
+            logAndWrite(applicationContext, "Falha temporária na atualização: ${error.message}", "AppUpdateWorker", "doWork", "WARN")
             Result.retry()
         } catch (error: Exception) {
+            logAndWrite(applicationContext, "Falha na atualização: ${error.message}", "AppUpdateWorker", "doWork", "ERROR")
             Result.failure()
         }
     }
