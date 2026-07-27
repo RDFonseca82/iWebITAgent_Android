@@ -27,7 +27,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
@@ -52,7 +51,6 @@ import com.rdfonseca.iwebit.receivers.LocationConfigChangeReceiver
 import com.rdfonseca.iwebit.receivers.WifiConfigChangeReceiver
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 
 
 val LocalUserPreferences = compositionLocalOf { UserPreferences() }
@@ -144,22 +142,30 @@ fun IWebITApp(
             val navController = rememberNavController()
 
             val context = LocalContext.current
-            var initialScreen by remember { mutableStateOf(Screen.LogInScreen.route) }
 
             LaunchedEffect(true) {
-                if (viewModel.userPrefsStateFlow.first().idSync.isNotEmpty()) {
-                    createNotificationChannel(context)
-                    createSysTrayNotification(context)
-                    initialScreen = Screen.RecentsScreen.route
-                }
                 delay(100)
                 onPostSplashScreen()
+            }
+
+            LaunchedEffect(userPreferences.idSync) {
+                if (
+                    userPreferences.idSync.isNotEmpty() &&
+                    navController.currentDestination?.route == Screen.LogInScreen.route
+                ) {
+                    createNotificationChannel(context)
+                    createSysTrayNotification(context)
+                    navController.navigate(Screen.RecentsScreen.route) {
+                        popUpTo(Screen.LogInScreen.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             }
 
             Surface(color = MaterialTheme.colorScheme.background) {
                 NavHost(
                     navController = navController,
-                    startDestination = initialScreen
+                    startDestination = Screen.LogInScreen.route
                 ) {
                     composable(
                         route = Screen.LogInScreen.route,

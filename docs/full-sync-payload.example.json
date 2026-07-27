@@ -2,7 +2,7 @@
   "UniqueId": "ANDROID-EXAMPLE-0001",
   "idsync": "COMPANY-SYNC-ID",
   "TypeSync": 1,
-  "version": "4.2",
+  "version": "4.3",
   "currentTime": "2026-07-23 11:30:00",
   "hostname": "android-device-01",
   "board": "example_board",
@@ -72,15 +72,15 @@
     "foregroundLocationPermission": true,
     "backgroundLocationPermission": true,
     "notificationsEnabled": true,
-    "appVersion": "4.2",
-    "appVersionCode": 402
+    "appVersion": "4.3",
+    "appVersionCode": 403
   },
   "advancedApplications": [
     {
       "packageName": "com.rdfonseca.iwebit",
       "label": "iWebIT Agent",
-      "versionName": "4.2",
-      "versionCode": 402,
+      "versionName": "4.3",
+      "versionCode": 403,
       "firstInstallAt": "2026-07-20T14:10:00Z",
       "lastUpdateAt": "2026-07-23T10:00:00Z",
       "targetSdk": 36,
@@ -183,8 +183,8 @@
   "supportBundle": {
     "generatedAt": 1784802600000,
     "reason": "REMOTE_REQUEST",
-    "appVersion": "4.2",
-    "appVersionCode": 402,
+    "appVersion": "4.3",
+    "appVersionCode": 403,
     "manufacturer": "Example Manufacturer",
     "model": "Example Phone",
     "androidVersion": "16",
@@ -207,8 +207,8 @@
       "foregroundLocationPermission": true,
       "backgroundLocationPermission": true,
       "notificationsEnabled": true,
-      "appVersion": "4.2",
-      "appVersionCode": 402
+      "appVersion": "4.3",
+      "appVersionCode": 403
     },
     "syncDiagnostics": {
       "pendingCount": 0,

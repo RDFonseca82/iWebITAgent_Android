@@ -1,9 +1,9 @@
 package com.rdfonseca.iwebit.domain.repository
 
 import androidx.datastore.preferences.core.Preferences
-import kotlinx.coroutines.flow.Flow
 import com.rdfonseca.iwebit.domain.model.DarkThemeMode
 import com.rdfonseca.iwebit.domain.model.UserPreferences
+import kotlinx.coroutines.flow.Flow
 
 interface UserPrefsRepository {
 
@@ -22,9 +22,9 @@ interface UserPrefsRepository {
         timeAlive: String? = null
     )
     suspend fun updateDeviceUUID()
+    suspend fun ensurePermanentIdentity()
     suspend fun updateLastForceFullSync()
     suspend fun updateYesOrNoLocPerm()
 
     fun mapUserPreferences(preferences: Preferences): UserPreferences
-
 }

@@ -71,8 +71,8 @@ class IncidentDetectorTest {
         foregroundLocationPermission = true,
         backgroundLocationPermission = true,
         notificationsEnabled = true,
-        appVersion = "4.2",
-        appVersionCode = 402
+        appVersion = "4.3",
+        appVersionCode = 403
     )
 
     private fun healthyNetwork() = NetworkDiagnostics(

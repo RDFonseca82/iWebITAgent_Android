@@ -2,22 +2,35 @@ package com.rdfonseca.iwebit.data.repository
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.rdfonseca.iwebit.common.logAndWrite
+import com.rdfonseca.iwebit.data.identity.CriticalIdentityStore
+import com.rdfonseca.iwebit.data.identity.CriticalRegistration
+import com.rdfonseca.iwebit.data.identity.DeviceIdentity
+import com.rdfonseca.iwebit.data.remote.IWebITApi
 import com.rdfonseca.iwebit.domain.model.DarkThemeMode
 import com.rdfonseca.iwebit.domain.model.ThemeState
 import com.rdfonseca.iwebit.domain.model.UserPreferences
 import com.rdfonseca.iwebit.domain.repository.UserPrefsRepository
 import java.io.IOException
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class UserPrefsRepositoryImpl @Inject constructor(
     private val dataStore: DataStore<Preferences>,
-    private val context: Context
+    private val context: Context,
+    private val api: IWebITApi
 ) : UserPrefsRepository {
 
     private object PreferencesKeys {
@@ -35,17 +48,28 @@ class UserPrefsRepositoryImpl @Inject constructor(
         val TIME_ALIVE = stringPreferencesKey("time_alive")
     }
 
-    override val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
-    .catch { exception ->
-        if (exception is IOException) {
-            logAndWrite(context, "ERROR: $exception", "UserPrefsRepositoryImpl.kt", "val_userPreferencesFlow")
-            emit(emptyPreferences())
-        } else {
-            throw exception
-        }
-    }.map { preferences ->
-        mapUserPreferences(preferences)
+    private val criticalIdentityStore = CriticalIdentityStore(context)
+    private val identityMutex = Mutex()
+    private val stableDeviceId: String by lazy { DeviceIdentity.stableDeviceId(context) }
+    private val permanentUniqueId: String by lazy {
+        DeviceIdentity.permanentUniqueId(stableDeviceId)
     }
+
+    override val userPreferencesFlow: Flow<UserPreferences> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                logAndWrite(
+                    context,
+                    "ERROR: $exception. A recuperar dados críticos.",
+                    "UserPrefsRepositoryImpl.kt",
+                    "userPreferencesFlow"
+                )
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map(::mapUserPreferences)
 
     override suspend fun changeTheme(newTheme: DarkThemeMode) {
         dataStore.edit { preferences ->
@@ -73,20 +97,120 @@ class UserPrefsRepositoryImpl @Inject constructor(
         timeSync: String?,
         timeAlive: String?
     ) {
+        val registration = if (idSync.isNullOrBlank()) {
+            CriticalRegistration()
+        } else {
+            CriticalRegistration(
+                idSync = idSync,
+                idCompany = idCompany.orEmpty(),
+                companyName = companyName.orEmpty(),
+                timeSync = timeSync ?: "0",
+                timeAlive = timeAlive ?: "0"
+            )
+        }
+
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.UNIQUE_ID] = uniqueId ?: ""
-            preferences[PreferencesKeys.ID_SYNC] = idSync ?: ""
-            preferences[PreferencesKeys.ID_COMPANY] = idCompany ?: ""
-            preferences[PreferencesKeys.COMPANY_NAME] = companyName ?: ""
-            preferences[PreferencesKeys.TIME_SYNC] = timeSync ?: "0"
-            preferences[PreferencesKeys.TIME_ALIVE] = timeAlive ?: "0"
+            preferences[PreferencesKeys.DEVICE_UUID] = stableDeviceId
+            preferences[PreferencesKeys.UNIQUE_ID] = permanentUniqueId
+            preferences[PreferencesKeys.ID_SYNC] = registration.idSync
+            preferences[PreferencesKeys.ID_COMPANY] = registration.idCompany
+            preferences[PreferencesKeys.COMPANY_NAME] = registration.companyName
+            preferences[PreferencesKeys.TIME_SYNC] = registration.timeSync
+            preferences[PreferencesKeys.TIME_ALIVE] = registration.timeAlive
+        }
+
+        if (registration.idSync.isBlank()) {
+            criticalIdentityStore.clear()
+        } else {
+            criticalIdentityStore.write(registration)
         }
     }
 
     override suspend fun updateDeviceUUID() {
+        identityMutex.withLock {
+            restoreLocalIdentity()
+        }
+    }
+
+    override suspend fun ensurePermanentIdentity() {
+        identityMutex.withLock {
+            restoreLocalIdentity()
+            val current = userPreferencesFlow.first()
+            if (current.idSync.isNotBlank()) return
+            if (criticalIdentityStore.read().recoveryDisabled) return
+
+            runCatching {
+                val device = api.getDeviceInfo(permanentUniqueId)
+                require(device.UniqueID.equals(permanentUniqueId, ignoreCase = true)) {
+                    "A plataforma devolveu uma identidade diferente"
+                }
+                require(device.IDSync.isNotBlank()) {
+                    "A plataforma não devolveu um IDSync"
+                }
+                val company = api.getCompanyInfo(device.IDSync)
+                updateUserInfo(
+                    uniqueId = permanentUniqueId,
+                    idSync = device.IDSync,
+                    idCompany = company.IdCompany,
+                    companyName = company.Company,
+                    timeSync = company.TimeSync.toString(),
+                    timeAlive = company.TimeAlive.toString()
+                )
+                logAndWrite(
+                    context,
+                    "Associação recuperada automaticamente para ${device.IDSync}",
+                    "UserPrefsRepositoryImpl.kt",
+                    "ensurePermanentIdentity"
+                )
+            }.onFailure { exception ->
+                logAndWrite(
+                    context,
+                    "Recuperação automática indisponível: ${exception.message}",
+                    "UserPrefsRepositoryImpl.kt",
+                    "ensurePermanentIdentity"
+                )
+            }
+        }
+    }
+
+    private suspend fun restoreLocalIdentity() {
+        val backup = criticalIdentityStore.read()
         dataStore.edit { preferences ->
-            if (preferences[PreferencesKeys.DEVICE_UUID] == null)
-                preferences[PreferencesKeys.DEVICE_UUID] = UUID.randomUUID().toString()
+            val idSync = preferences[PreferencesKeys.ID_SYNC]
+                .orEmpty()
+                .ifBlank { backup.idSync }
+            val idCompany = preferences[PreferencesKeys.ID_COMPANY]
+                .orEmpty()
+                .ifBlank { backup.idCompany }
+            val companyName = preferences[PreferencesKeys.COMPANY_NAME]
+                .orEmpty()
+                .ifBlank { backup.companyName }
+            val timeSync = preferences[PreferencesKeys.TIME_SYNC]
+                .orEmpty()
+                .ifBlank { backup.timeSync }
+            val timeAlive = preferences[PreferencesKeys.TIME_ALIVE]
+                .orEmpty()
+                .ifBlank { backup.timeAlive }
+
+            preferences[PreferencesKeys.DEVICE_UUID] = stableDeviceId
+            preferences[PreferencesKeys.UNIQUE_ID] = permanentUniqueId
+            preferences[PreferencesKeys.ID_SYNC] = idSync
+            preferences[PreferencesKeys.ID_COMPANY] = idCompany
+            preferences[PreferencesKeys.COMPANY_NAME] = companyName
+            preferences[PreferencesKeys.TIME_SYNC] = timeSync
+            preferences[PreferencesKeys.TIME_ALIVE] = timeAlive
+
+            if (idSync.isNotBlank()) {
+                criticalIdentityStore.write(
+                    CriticalRegistration(
+                        idSync = idSync,
+                        idCompany = idCompany,
+                        companyName = companyName,
+                        timeSync = timeSync,
+                        timeAlive = timeAlive
+                    )
+                )
+            }
         }
     }
 
@@ -103,29 +227,42 @@ class UserPrefsRepositoryImpl @Inject constructor(
     }
 
     override fun mapUserPreferences(preferences: Preferences): UserPreferences {
+        val backup = criticalIdentityStore.read()
         val acceptedOrDeclinedLocPerm = preferences[PreferencesKeys.YES_OR_NO_LOC_PERM] ?: false
-        val deviceUUID = preferences[PreferencesKeys.DEVICE_UUID] ?: ""
         val lastForceFullSync = preferences[PreferencesKeys.LAST_FORCE_FULL_SYNC] ?: 0L
-        val darkTheme = DarkThemeMode.valueOf(
-            preferences[PreferencesKeys.DARK_THEME] ?: DarkThemeMode.SYSTEM.name
-        )
+        val darkTheme = runCatching {
+            DarkThemeMode.valueOf(
+                preferences[PreferencesKeys.DARK_THEME] ?: DarkThemeMode.SYSTEM.name
+            )
+        }.getOrDefault(DarkThemeMode.SYSTEM)
         val cachedSupportNome = preferences[PreferencesKeys.SUPPORT_NOME] ?: ""
         val cachedSupportSuporte = preferences[PreferencesKeys.SUPPORT_SUPORTE] ?: ""
-        val uniqueId = preferences[PreferencesKeys.UNIQUE_ID] ?: ""
-        val idSync = preferences[PreferencesKeys.ID_SYNC] ?: ""
-        val idCompany = preferences[PreferencesKeys.ID_COMPANY] ?: ""
-        val companyName = preferences[PreferencesKeys.COMPANY_NAME] ?: ""
-        val timeSync = (preferences[PreferencesKeys.TIME_SYNC] ?: "0").toInt()
-        val timeAlive = (preferences[PreferencesKeys.TIME_ALIVE] ?: "0").toInt()
+        val idSync = preferences[PreferencesKeys.ID_SYNC]
+            .orEmpty()
+            .ifBlank { backup.idSync }
+        val idCompany = preferences[PreferencesKeys.ID_COMPANY]
+            .orEmpty()
+            .ifBlank { backup.idCompany }
+        val companyName = preferences[PreferencesKeys.COMPANY_NAME]
+            .orEmpty()
+            .ifBlank { backup.companyName }
+        val timeSync = preferences[PreferencesKeys.TIME_SYNC]
+            .orEmpty()
+            .ifBlank { backup.timeSync }
+            .toIntOrNull() ?: 0
+        val timeAlive = preferences[PreferencesKeys.TIME_ALIVE]
+            .orEmpty()
+            .ifBlank { backup.timeAlive }
+            .toIntOrNull() ?: 0
 
         return UserPreferences(
             acceptedOrDeclinedLocPerm = acceptedOrDeclinedLocPerm,
-            deviceUUID = deviceUUID,
+            deviceUUID = stableDeviceId,
             lastForceFullSync = lastForceFullSync,
             theme = ThemeState(darkTheme),
             cachedSupportNome = cachedSupportNome,
             cachedSupportSuporte = cachedSupportSuporte,
-            uniqueId = uniqueId,
+            uniqueId = permanentUniqueId,
             idSync = idSync,
             idCompany = idCompany,
             companyName = companyName,
