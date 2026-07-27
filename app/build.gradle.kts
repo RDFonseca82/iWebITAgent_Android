@@ -39,6 +39,20 @@ android {
         }
     }
 
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("enterprise") {
+            dimension = "distribution"
+            applicationId = "com.rdfonseca.iwebit"
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "true")
+        }
+        create("play") {
+            dimension = "distribution"
+            applicationId = "app.iwebit.agent"
+            buildConfigField("boolean", "SELF_UPDATE_ENABLED", "false")
+        }
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("production") {
@@ -60,7 +74,7 @@ android {
             signingConfig = if (hasReleaseSigning) {
                 signingConfigs.getByName("production")
             } else {
-                signingConfigs.getByName("debug")
+                null
             }
         }
     }

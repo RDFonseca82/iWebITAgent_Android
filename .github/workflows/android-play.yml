@@ -1,0 +1,100 @@
+name: Gerar AAB para Google Play
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-play-bundle:
+    name: Gerar AAB Google Play assinado
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v7
+
+      - name: Configurar Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Validar e preparar assinatura
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!variable:-}" ]; then
+              echo "GitHub Secret em falta: $variable" >&2
+              exit 1
+            fi
+          done
+          keystore_path="$RUNNER_TEMP/iwebit-play-upload.jks"
+          normalized_base64="$(
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" |
+              tr -d '[:space:]' |
+              tr -cd 'A-Za-z0-9+/='
+          )"
+          case $((${#normalized_base64} % 4)) in
+            2) normalized_base64="${normalized_base64}==" ;;
+            3) normalized_base64="${normalized_base64}=" ;;
+          esac
+          if [ "${#normalized_base64}" -lt 1000 ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 está vazio, incompleto ou não contém o ficheiro Base64." >&2
+            exit 1
+          fi
+          printf '%s' "$normalized_base64" | base64 --decode > "$keystore_path"
+          if ! keytool -list \
+            -keystore "$keystore_path" \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Keystore, password ou alias inválido." >&2
+            exit 1
+          fi
+          echo "ANDROID_KEYSTORE_PATH=$keystore_path" >> "$GITHUB_ENV"
+
+      - name: Definir versão da compilação
+        shell: bash
+        run: |
+          echo "CI_VERSION_CODE=$((100000000 + GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT))" >> "$GITHUB_ENV"
+          echo "CI_VERSION_NAME=4.3.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+
+      - name: Preparar Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Testar, analisar e gerar AAB
+        run: >-
+          ./gradlew testPlayDebugUnitTest lintPlayRelease bundlePlayRelease
+          -PciVersionCode=${CI_VERSION_CODE}
+          -PciVersionName=${CI_VERSION_NAME}
+
+      - name: Preparar artefacto
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab \
+            "dist/iWebIT-Agent-${CI_VERSION_NAME}.aab"
+          sha256sum "dist/iWebIT-Agent-${CI_VERSION_NAME}.aab" \
+            > "dist/iWebIT-Agent-${CI_VERSION_NAME}.aab.sha256"
+
+      - name: Guardar AAB para envio à Google Play
+        uses: actions/upload-artifact@v7
+        with:
+          name: iWebIT-Agent-Google-Play-${{ env.CI_VERSION_NAME }}
+          path: |
+            dist/*.aab
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30

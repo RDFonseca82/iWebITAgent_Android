@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build-and-publish:
-    name: Gerar APK assinado e publicar
+    name: Gerar APK empresarial assinado e publicar
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
@@ -84,9 +84,9 @@ jobs:
       - name: Preparar Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Testar e compilar APK release
+      - name: Testar e compilar APK empresarial
         run: >-
-          ./gradlew testDebugUnitTest lintRelease assembleRelease
+          ./gradlew testEnterpriseDebugUnitTest lintEnterpriseRelease assembleEnterpriseRelease
           -PciVersionCode=${CI_VERSION_CODE}
           -PciVersionName=${CI_VERSION_NAME}
 
@@ -97,7 +97,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk dist/iwebit-agent.apk
+          cp app/build/outputs/apk/enterprise/release/app-enterprise-release.apk dist/iwebit-agent.apk
           export APK_SHA256="$(sha256sum dist/iwebit-agent.apk | cut -d ' ' -f 1)"
           export APK_SIZE="$(stat -c '%s' dist/iwebit-agent.apk)"
           export PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"

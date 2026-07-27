@@ -6,7 +6,7 @@ object Constants {
     const val PLATAFORM_URL = "https://intranet.iwebit.app/login.php"
     const val BASE_URL = "https://agent.iwebit.app/"
     const val DOMAIN_URL = "https://agent.iwebit.app/"
-    const val PRIVACY_POLICY_URL = "https://www.iwebit.app/privacypolicy.php"
+    const val PRIVACY_POLICY_URL = "https://intranet.iwebit.app/privacypolicy.php"
     const val PLAYSTORE_APP_URL = "https://play.google.com/store/apps/details?id=rdfonseca.iwebit"
     const val LOG_FILE_NAME = "log.txt"
 

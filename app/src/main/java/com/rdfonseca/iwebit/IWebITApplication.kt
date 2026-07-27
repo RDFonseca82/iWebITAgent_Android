@@ -28,7 +28,9 @@ class IWebITApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             userPrefsRepository.ensurePermanentIdentity()
         }
-        scheduleAppUpdateChecks(this)
+        if (BuildConfig.SELF_UPDATE_ENABLED) {
+            scheduleAppUpdateChecks(this)
+        }
     }
 
     override val workManagerConfiguration: Configuration
