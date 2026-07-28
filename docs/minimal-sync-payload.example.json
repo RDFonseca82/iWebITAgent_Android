@@ -1,0 +1,31 @@
+{
+  "UniqueId": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "idsync": "228187451",
+  "TypeSync": 2,
+  "currentTime": "2026-07-28 09:30:00",
+  "ipAddress": "192.0.2.10",
+  "freeBytes": "32212254720",
+  "availMem": "4294967296",
+  "batteryCapacity": "86",
+  "health": {
+    "collectedAt": 1785227400000,
+    "batteryLevelPercent": 86,
+    "isCharging": false,
+    "batteryTemperatureCelsius": 31.5,
+    "availableStorageBytes": 32212254720,
+    "totalStorageBytes": 128849018880,
+    "availableMemoryBytes": 4294967296,
+    "totalMemoryBytes": 8589934592,
+    "lowMemory": false,
+    "networkType": "MOBILE",
+    "networkValidated": true,
+    "deviceUptimeMillis": 480000,
+    "locationEnabled": true,
+    "foregroundLocationPermission": true,
+    "backgroundLocationPermission": true,
+    "notificationsEnabled": true,
+    "appVersion": "4.7",
+    "appVersionCode": 407
+  },
+  "incidents": []
+}
