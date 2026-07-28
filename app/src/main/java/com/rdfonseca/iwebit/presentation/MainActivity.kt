@@ -28,15 +28,12 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.rdfonseca.iwebit.common.createNotificationChannel
-import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.domain.model.UserPreferences
 import com.rdfonseca.iwebit.presentation.components.UserViewModel
 import com.rdfonseca.iwebit.presentation.definitions.DefinitionsScreen
@@ -141,25 +138,9 @@ fun IWebITApp(
         IWebITTheme(darkTheme = isDarkTheme()) {
             val navController = rememberNavController()
 
-            val context = LocalContext.current
-
             LaunchedEffect(true) {
                 delay(100)
                 onPostSplashScreen()
-            }
-
-            LaunchedEffect(userPreferences.idSync) {
-                if (
-                    userPreferences.idSync.isNotEmpty() &&
-                    navController.currentDestination?.route == Screen.LogInScreen.route
-                ) {
-                    createNotificationChannel(context)
-                    createSysTrayNotification(context)
-                    navController.navigate(Screen.RecentsScreen.route) {
-                        popUpTo(Screen.LogInScreen.route) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
             }
 
             Surface(color = MaterialTheme.colorScheme.background) {

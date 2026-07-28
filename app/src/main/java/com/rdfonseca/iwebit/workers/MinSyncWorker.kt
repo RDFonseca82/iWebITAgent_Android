@@ -2,7 +2,9 @@ package com.rdfonseca.iwebit.workers
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
@@ -65,10 +67,37 @@ class MinSyncWorker @AssistedInject constructor(
             }
 
             if (deviceInfo.DeviceLocation == 1) {
-                val intent = Intent(context, SincLocationService::class.java).apply {
-                    action = Constants.ACTION_START_SERVICE
+                val hasLocationPermission =
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED ||
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                val hasBackgroundLocationPermission =
+                    android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q ||
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+
+                if (hasLocationPermission && hasBackgroundLocationPermission) {
+                    val intent = Intent(context, SincLocationService::class.java).apply {
+                        action = Constants.ACTION_START_SERVICE
+                    }
+                    context.startForegroundService(intent)
+                } else {
+                    logAndWrite(
+                        context,
+                        "Pedido remoto de localização adiado: permissão indisponível",
+                        "MinSyncWorker",
+                        "doWork",
+                        "WARN"
+                    )
                 }
-                context.startForegroundService(intent)
             }
 
             if (deviceInfo.AndroidPrintScreen == 1) {

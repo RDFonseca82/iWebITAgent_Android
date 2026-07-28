@@ -59,6 +59,11 @@ fun ProminentLocationDisclosure(
             context,
             Manifest.permission.ACCESS_BACKGROUND_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
+    val notificationAlreadyGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
     var showBackgroundInstructions by remember {
         mutableStateOf(
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
@@ -67,35 +72,49 @@ fun ProminentLocationDisclosure(
         )
     }
 
+    val notificationPermission = rememberPermissionState(
+        Manifest.permission.POST_NOTIFICATIONS
+    ) {
+        onDismiss()
+    }
+
+    fun finishPermissionFlow() {
+        if (notificationAlreadyGranted) {
+            onDismiss()
+        } else {
+            notificationPermission.launchPermissionRequest()
+        }
+    }
+
     val settingsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        onDismiss()
+        finishPermissionFlow()
     }
     val backgroundPermission = rememberPermissionState(
         Manifest.permission.ACCESS_BACKGROUND_LOCATION
     ) {
-        onDismiss()
+        finishPermissionFlow()
     }
     val foregroundPermission = rememberMultiplePermissionsState(
         foregroundPermissions
     ) { results ->
         val granted = results.values.any { it }
         when {
-            !granted -> onDismiss()
+            !granted -> finishPermissionFlow()
             Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
                 backgroundPermission.launchPermissionRequest()
             }
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R -> {
                 showBackgroundInstructions = true
             }
-            else -> onDismiss()
+            else -> finishPermissionFlow()
         }
     }
 
     fun requestLocationPermission() {
         when {
-            backgroundAlreadyGranted -> onDismiss()
+            backgroundAlreadyGranted -> finishPermissionFlow()
             showBackgroundInstructions -> {
                 settingsLauncher.launch(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -106,11 +125,10 @@ fun ProminentLocationDisclosure(
             foregroundAlreadyGranted && Build.VERSION.SDK_INT == Build.VERSION_CODES.Q -> {
                 backgroundPermission.launchPermissionRequest()
             }
-            foregroundAlreadyGranted -> onDismiss()
+            foregroundAlreadyGranted -> finishPermissionFlow()
             else -> foregroundPermission.launchMultiplePermissionRequest()
         }
     }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -147,7 +165,7 @@ fun ProminentLocationDisclosure(
             lottie = R.raw.gps_location_disclosure
         )
         Text(
-            text = "A permissão é opcional e pode ser alterada mais tarde nas definições do Android.",
+            text = "As permissões são opcionais e podem ser alteradas mais tarde nas definições do Android. O sistema também poderá pedir autorização para apresentar notificações.",
             textAlign = TextAlign.Center
         )
         Row(

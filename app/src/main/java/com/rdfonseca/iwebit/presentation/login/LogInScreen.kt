@@ -2,6 +2,7 @@ package com.rdfonseca.iwebit.presentation.login
 
 import android.Manifest
 import android.os.Build
+import android.content.pm.PackageManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -32,6 +33,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -63,13 +66,13 @@ import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.common.enqueueInitialSync
 import com.rdfonseca.iwebit.common.setupFullSyncWorker
 import com.rdfonseca.iwebit.common.setupMinSyncWorker
+import com.rdfonseca.iwebit.domain.model.UserPreferences
 import com.rdfonseca.iwebit.presentation.Screen
 import com.rdfonseca.iwebit.presentation.components.UserViewModel
 import com.rdfonseca.iwebit.presentation.login.components.ProminentLocationDisclosure
 import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.presentation.utils.lerp
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -84,22 +87,37 @@ fun LogInScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
+    val storedUserPreferences by userViewModel.userPrefsStateFlow.collectAsState<UserPreferences, UserPreferences?>(
+        initial = null
+    )
+    val userPreferences = storedUserPreferences ?: UserPreferences()
     var formVisible by rememberSaveable { mutableStateOf(false) }
+    var showDisclosure by rememberSaveable { mutableStateOf(false) }
+    var entryCompleted by rememberSaveable { mutableStateOf(false) }
     val fraction by animateFloatAsState(
         targetValue = if (formVisible) 1f else 0f,
         animationSpec = tween(400),
         label = "fractionAnimation"
     )
+
+    fun enterApplication() {
+        if (entryCompleted) return
+        entryCompleted = true
+        createNotificationChannel(context)
+        createSysTrayNotification(context)
+        setupFullSyncWorker(context)
+        setupMinSyncWorker(context)
+        enqueueInitialSync(context)
+        navController.navigate(Screen.RecentsScreen.route) {
+            popUpTo(Screen.LogInScreen.route) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
     val logInLambda = {
         scope.launch {
             viewModel.logIn {
-                createNotificationChannel(context)
-                createSysTrayNotification(context)
-                setupFullSyncWorker(context)
-                setupMinSyncWorker(context)
-                enqueueInitialSync(context)
-                navController.popBackStack()
-                navController.navigate(Screen.RecentsScreen.route)
+                enterApplication()
             }
         }
         Unit
@@ -107,7 +125,6 @@ fun LogInScreen(
     val iconOffset = lerp(0f, -200f, fraction)
     val formOffset = lerp(150f, 50f, 0.4f, 1f, fraction)
     val formAlpha = lerp(0f, 1f, 0.4f, 1f, fraction)
-    var showDisclosure by rememberSaveable { mutableStateOf(false) }
     val multiplePermissionsState = rememberMultiplePermissionsState(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) listOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -119,19 +136,39 @@ fun LogInScreen(
         )
     ) { }
 
-    LaunchedEffect(key1 = true) {
+    LaunchedEffect(Unit) {
         formVisible = true
         delay(400)
-        if (!userViewModel.userPrefsStateFlow.first().acceptedOrDeclinedLocPerm && !multiplePermissionsState.allPermissionsGranted) {
-            userViewModel.changeYesOrNoLocPerm()
+    }
+
+    LaunchedEffect(storedUserPreferences) {
+        val preferences = storedUserPreferences ?: return@LaunchedEffect
+        val recoveredRegistration = preferences.idSync.isNotBlank()
+        val notificationPermissionGranted =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+        val permissionFlowRequired =
+            (!multiplePermissionsState.allPermissionsGranted || !notificationPermissionGranted) &&
+                (recoveredRegistration || !preferences.acceptedOrDeclinedLocPerm)
+
+        if (permissionFlowRequired) {
+            if (!preferences.acceptedOrDeclinedLocPerm) {
+                userViewModel.changeYesOrNoLocPerm()
+            }
             showDisclosure = true
+        } else if (recoveredRegistration) {
+            enterApplication()
         }
     }
 
-    LaunchedEffect(key1 = viewModel.state.error) {
-        if (viewModel.state.error.isNotBlank()) snackbarHostState.showSnackbar(viewModel.state.error)
+    LaunchedEffect(viewModel.state.error) {
+        if (viewModel.state.error.isNotBlank()) {
+            snackbarHostState.showSnackbar(viewModel.state.error)
+        }
     }
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) {
@@ -246,6 +283,9 @@ fun LogInScreen(
             ) {
                 ProminentLocationDisclosure {
                     showDisclosure = false
+                    if (userPreferences.idSync.isNotBlank()) {
+                        enterApplication()
+                    }
                 }
             }
         }
