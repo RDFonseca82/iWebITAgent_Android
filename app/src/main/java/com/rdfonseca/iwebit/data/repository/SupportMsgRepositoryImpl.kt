@@ -10,7 +10,6 @@ import com.rdfonseca.iwebit.common.logAndWrite
 import com.rdfonseca.iwebit.data.remote.IWebITApi
 import com.rdfonseca.iwebit.data.remote.IWebITDomainApi
 import com.rdfonseca.iwebit.data.util.Converters
-import com.rdfonseca.iwebit.data.util.generateUniqueId
 import com.rdfonseca.iwebit.domain.model.CompanyDeviceInfo
 import com.rdfonseca.iwebit.domain.model.SupportMsg
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonFull
@@ -89,7 +88,7 @@ class SupportMsgRepositoryImpl(
         try {
             val companyInfoDto = api.getCompanyInfo(idSync)
 
-            val uniqueId = companyInfoDto.generateUniqueId(uuid)
+            val uniqueId = uuid
             logAndWrite(context, "IDSync validado; a recolher inventário inicial", "SupportMsgRepositoryImpl", "logIn")
             val bodyInJsonFull = withContext(Dispatchers.IO) {
                 getBodyInJsonFull(

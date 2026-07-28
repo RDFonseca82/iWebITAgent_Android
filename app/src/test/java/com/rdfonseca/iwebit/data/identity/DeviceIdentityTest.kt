@@ -31,4 +31,35 @@ class DeviceIdentityTest {
             )
         )
     }
+    @Test
+    fun existingStoredUniqueIdAlwaysWinsDuringMigration() {
+        val legacy = DeviceIdentity.sha256("legacy-company-and-random-uuid")
+        val generated = DeviceIdentity.permanentUniqueId("new-stable-device-id")
+
+        assertEquals(
+            legacy,
+            DeviceIdentity.preferredUniqueId(legacy, null, generated)
+        )
+    }
+
+    @Test
+    fun backedUpUniqueIdIsRestoredAfterReinstall() {
+        val backedUp = DeviceIdentity.sha256("backed-up-identity")
+        val generated = DeviceIdentity.permanentUniqueId("new-stable-device-id")
+
+        assertEquals(
+            backedUp,
+            DeviceIdentity.preferredUniqueId(null, backedUp, generated)
+        )
+    }
+
+    @Test
+    fun generatedUniqueIdIsUsedOnlyWithoutAValidExistingIdentity() {
+        val generated = DeviceIdentity.permanentUniqueId("stable-device-id")
+
+        assertEquals(
+            generated,
+            DeviceIdentity.preferredUniqueId("invalid", "", generated)
+        )
+    }
 }

@@ -11,8 +11,10 @@ import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.Constants.ACTION_REQUESTED_ASK_AND_CAPTURE_SCREEN
@@ -32,6 +34,7 @@ import com.rdfonseca.iwebit.common.Constants.WORKER_FORCE_SYNC_TAG
 import com.rdfonseca.iwebit.common.Constants.WORKER_FULL_SYNC_TAG
 import com.rdfonseca.iwebit.common.Constants.WORKER_LOCATION_SYNC_TAG
 import com.rdfonseca.iwebit.common.Constants.WORKER_MIN_SYNC_TAG
+import com.rdfonseca.iwebit.common.Constants.WORKER_INITIAL_SYNC_TAG
 import com.rdfonseca.iwebit.presentation.MainActivity
 import com.rdfonseca.iwebit.presentation.MockActivityPermission
 import com.rdfonseca.iwebit.presentation.UninstallAppsActivity
@@ -95,6 +98,40 @@ fun setupMinSyncWorker(
         ExistingPeriodicWorkPolicy.UPDATE,
         periodicWorkRequest
     )
+}
+
+fun enqueueInitialSync(context: Context) {
+    val minimalSync = OneTimeWorkRequestBuilder<MinSyncWorker>()
+        .setConstraints(syncNetworkConstraints)
+        .setBackoffCriteria(
+            BackoffPolicy.EXPONENTIAL,
+            SYNC_BACKOFF_SECONDS,
+            TimeUnit.SECONDS
+        )
+        .build()
+
+    val fullSync = OneTimeWorkRequestBuilder<FullSyncWorker>()
+        .setInputData(
+            Data.Builder()
+                .putBoolean(FORCE_FULL_EXTRA, false)
+                .build()
+        )
+        .setConstraints(syncNetworkConstraints)
+        .setBackoffCriteria(
+            BackoffPolicy.EXPONENTIAL,
+            SYNC_BACKOFF_SECONDS,
+            TimeUnit.SECONDS
+        )
+        .build()
+
+    WorkManager.getInstance(context)
+        .beginUniqueWork(
+            WORKER_INITIAL_SYNC_TAG,
+            ExistingWorkPolicy.KEEP,
+            minimalSync
+        )
+        .then(fullSync)
+        .enqueue()
 }
 
 fun createNotificationChannel(context: Context) {
@@ -317,6 +354,7 @@ fun cancelAllNotifications(context: Context) {
     manager.cancelUniqueWork(WORKER_FULL_SYNC_TAG)
     manager.cancelUniqueWork(WORKER_MIN_SYNC_TAG)
     manager.cancelUniqueWork(WORKER_FORCE_SYNC_TAG)
+    manager.cancelUniqueWork(WORKER_INITIAL_SYNC_TAG)
     manager.cancelUniqueWork(WORKER_LOCATION_SYNC_TAG)
 
     cancelNotification(SYSTRAY_NOTIFICATION_ID, context)

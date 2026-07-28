@@ -29,7 +29,10 @@ class LocationSyncWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val userData = userPrefsRepo.userPreferencesFlow.first()
-        if (userData.uniqueId.isBlank()) return Result.success()
+        if (userData.uniqueId.isBlank() || userData.idSync.isBlank()) {
+            logAndWrite(context, "Sincronização ignorada: identidade ou IDSync em falta", "LocationSyncWorker", "doWork", "WARN")
+            return Result.success()
+        }
 
         val locationParts = inputData.getString(LOCATION_DATA_EXTRA)?.split("|")
         if (locationParts == null || locationParts.size != 2) return Result.failure()

@@ -46,6 +46,7 @@ object Constants {
     const val WORKER_FULL_SYNC_TAG = "FullSyncW»"
     const val WORKER_FORCE_SYNC_TAG = "ForceSyncW»"
     const val WORKER_MIN_SYNC_TAG = "MinSyncW»"
+    const val WORKER_INITIAL_SYNC_TAG = "InitialSyncW"
     const val WORKER_LOCATION_SYNC_TAG = "LocationSyncW»"
     const val WORKER_SUPPORT_BUNDLE_TAG = "SupportBundleSyncW"
     const val WORKER_APP_UPDATE_TAG = "AppUpdateW"

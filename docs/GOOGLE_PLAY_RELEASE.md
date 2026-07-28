@@ -91,8 +91,8 @@ Mostrar o inventário de aplicações na plataforma e explicar que a gestão/inv
 - `compileSdk` e `targetSdk`: API 36
 - Android 16: suportado
 - Package Play: `app.iwebit.agent`
-- `versionCode`: 404 local; o GitHub gera um código crescente
-- `versionName`: 4.4 local; o GitHub acrescenta execução/tentativa
+- `versionCode`: 406 local; o GitHub gera um código crescente
+- `versionName`: 4.6 local; o GitHub acrescenta execução/tentativa
 - AAB abaixo dos limites da Play
 - Bibliotecas nativas alinhadas para páginas de memória de 16 KB
 - Lint Play sem erros

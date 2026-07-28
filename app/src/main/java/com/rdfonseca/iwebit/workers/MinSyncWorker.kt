@@ -42,7 +42,10 @@ class MinSyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         logAndWrite(context, "DOING MINIMAL SYNC", "MinSyncWorker", "doWork")
         val userData = userPrefsRepo.userPreferencesFlow.first()
-        if (userData.uniqueId.isBlank()) return Result.success()
+        if (userData.uniqueId.isBlank() || userData.idSync.isBlank()) {
+            logAndWrite(context, "Sincronização ignorada: identidade ou IDSync em falta", "MinSyncWorker", "doWork", "WARN")
+            return Result.success()
+        }
 
         return try {
             val payload = converters.toBodyJsonMin(

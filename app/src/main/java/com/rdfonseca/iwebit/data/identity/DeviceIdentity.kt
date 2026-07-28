@@ -33,6 +33,19 @@ object DeviceIdentity {
     fun permanentUniqueId(stableDeviceId: String): String =
         sha256("$UNIQUE_ID_NAMESPACE|$stableDeviceId")
 
+    /** Preserves a valid identity already assigned to this installation. */
+    fun preferredUniqueId(
+        storedUniqueId: String?,
+        backedUpUniqueId: String?,
+        generatedUniqueId: String
+    ): String = sequenceOf(storedUniqueId, backedUpUniqueId, generatedUniqueId)
+        .map { it.orEmpty().trim().lowercase() }
+        .firstOrNull(::isValidUniqueId)
+        ?: generatedUniqueId
+
+    internal fun isValidUniqueId(value: String): Boolean =
+        value.length == 64 && value.all { it in '0'..'9' || it in 'a'..'f' }
+
     internal fun sha256(value: String): String =
         MessageDigest
             .getInstance("SHA-256")

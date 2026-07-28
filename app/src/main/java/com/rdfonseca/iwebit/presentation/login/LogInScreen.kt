@@ -60,6 +60,7 @@ import com.rdfonseca.iwebit.R
 import com.rdfonseca.iwebit.common.Constants
 import com.rdfonseca.iwebit.common.createNotificationChannel
 import com.rdfonseca.iwebit.common.createSysTrayNotification
+import com.rdfonseca.iwebit.common.enqueueInitialSync
 import com.rdfonseca.iwebit.common.setupFullSyncWorker
 import com.rdfonseca.iwebit.common.setupMinSyncWorker
 import com.rdfonseca.iwebit.presentation.Screen
@@ -96,6 +97,7 @@ fun LogInScreen(
                 createSysTrayNotification(context)
                 setupFullSyncWorker(context)
                 setupMinSyncWorker(context)
+                enqueueInitialSync(context)
                 navController.popBackStack()
                 navController.navigate(Screen.RecentsScreen.route)
             }

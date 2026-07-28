@@ -1,8 +1,16 @@
 # Identidade permanente do agente Android
 
-Desde a versão 4.3, o `UniqueID` já não é criado a partir de um UUID aleatório nem contém informação de IP, Wi-Fi ou outra rede.
+Desde a versão 4.3, o `UniqueID` determinístico já não contém informação de IP, Wi-Fi ou outra rede. A versão 4.5 corrige a migração para nunca substituir um `UniqueID` válido que já esteja associado à plataforma.
 
-## Como é calculado
+## Ordem de escolha na versão 4.5
+
+1. `UniqueID` existente no DataStore;
+2. `UniqueID` existente no backup crítico/Android Backup;
+3. identificador determinístico calculado localmente, apenas quando os anteriores não existem.
+
+O mesmo valor é usado no login, no inventário inicial, nas sincronizações completas, mínimas, de localização e nos pedidos de suporte.
+
+## Como é calculado para uma instalação nova
 
 1. O agente lê o `ANDROID_ID` do dispositivo.
 2. Combina-o com o certificado usado para assinar a aplicação.
@@ -11,28 +19,25 @@ Desde a versão 4.3, o `UniqueID` já não é criado a partir de um UUID aleató
 
 Com o mesmo dispositivo, utilizador/perfil Android, package name e certificado de assinatura, o valor mantém-se após reinícios, alterações de IP/rede, atualizações e reinstalações.
 
-O Android pode fornecer outra identidade depois de uma reposição de fábrica, mudança de utilizador/perfil ou mudança da chave de assinatura. Uma aplicação Android normal não dispõe de um identificador que sobreviva legal e tecnicamente a todas essas situações.
+O Android pode fornecer outra identidade depois de uma reposição de fábrica, mudança de utilizador/perfil ou mudança da chave de assinatura. Uma aplicação Android normal não dispõe de um identificador que sobreviva tecnicamente a todas essas situações; nesses casos, a recuperação absoluta exige que a plataforma mantenha um vínculo próprio ao equipamento.
 
-## Proteção do IDSync
+## Proteção e recuperação
 
-Os dados de associação essenciais são guardados no DataStore e num segundo ficheiro de preferências:
+A cópia redundante passa a guardar:
 
-- `IDSync`
-- empresa
-- tempos de sincronização
+- `UniqueID`;
+- `IDSync`;
+- empresa;
+- tempos de sincronização.
 
-Se o DataStore estiver vazio ou corrompido, o agente repõe automaticamente estes valores a partir da cópia redundante. Estes dois ficheiros também estão incluídos nas regras de Android Backup e transferência de dispositivo.
+O DataStore e o backup crítico estão incluídos nas regras de Android Backup e transferência de dispositivo. Se o DataStore estiver vazio ou corrompido, o agente repõe os valores a partir da cópia redundante.
 
-Se ambos os ficheiros tiverem desaparecido, por exemplo depois de uma reinstalação sem restauro de backup, o agente consulta `https://agent.iwebit.app/` com o `UniqueID` permanente e recupera a associação já conhecida pela plataforma.
+Se ambos desaparecerem, o agente calcula o identificador determinístico e consulta `https://agent.iwebit.app/` para recuperar uma associação que a plataforma já conheça.
 
-O comando explícito para terminar sessão desativa esta recuperação automática até existir um novo login válido.
+O logout limpa a associação à empresa, mas mantém o `UniqueID`. A recuperação automática fica desativada até existir um novo login válido.
 
-## Migração da versão anterior
+## Migração de instalações antigas
 
-Na primeira execução da versão 4.3, instalações já associadas:
+A versão 4.5 mantém qualquer `UniqueID` SHA-256 já guardado, em vez de o substituir silenciosamente. Isto preserva a chave usada pela plataforma em atualizações diretas de versões antigas.
 
-1. preservam o `IDSync`;
-2. substituem o antigo `UniqueID` aleatório pelo identificador permanente;
-3. enviam o novo valor na sincronização seguinte.
-
-Convém deixar o agente efetuar pelo menos uma sincronização depois da atualização para que a plataforma conheça a nova identidade antes de testar uma desinstalação/reinstalação.
+Se a versão 4.3 ou 4.4 já tiver substituído o identificador antigo e não existir backup desse valor, o identificador anterior não pode ser reconstruído. Nesse equipamento, o hash atual fica estável definitivamente a partir da 4.5 e poderá ser necessário associá-lo uma vez na plataforma.

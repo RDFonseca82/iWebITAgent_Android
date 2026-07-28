@@ -3,6 +3,7 @@ package com.rdfonseca.iwebit.data.identity
 import android.content.Context
 
 data class CriticalRegistration(
+    val uniqueId: String = "",
     val idSync: String = "",
     val idCompany: String = "",
     val companyName: String = "",
@@ -18,6 +19,7 @@ class CriticalIdentityStore(context: Context) {
     )
 
     fun read(): CriticalRegistration = CriticalRegistration(
+        uniqueId = preferences.getString(KEY_UNIQUE_ID, "").orEmpty(),
         idSync = preferences.getString(KEY_ID_SYNC, "").orEmpty(),
         idCompany = preferences.getString(KEY_ID_COMPANY, "").orEmpty(),
         companyName = preferences.getString(KEY_COMPANY_NAME, "").orEmpty(),
@@ -28,6 +30,7 @@ class CriticalIdentityStore(context: Context) {
 
     fun write(registration: CriticalRegistration) {
         preferences.edit()
+            .putString(KEY_UNIQUE_ID, registration.uniqueId)
             .putString(KEY_ID_SYNC, registration.idSync)
             .putString(KEY_ID_COMPANY, registration.idCompany)
             .putString(KEY_COMPANY_NAME, registration.companyName)
@@ -41,6 +44,7 @@ class CriticalIdentityStore(context: Context) {
 
     companion object {
         const val PREFERENCES_NAME = "critical_identity"
+        private const val KEY_UNIQUE_ID = "unique_id"
         private const val KEY_ID_SYNC = "id_sync"
         private const val KEY_ID_COMPANY = "id_company"
         private const val KEY_COMPANY_NAME = "company_name"

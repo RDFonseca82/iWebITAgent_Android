@@ -35,7 +35,10 @@ class FullSyncWorker @AssistedInject constructor(
         val forceFullSync = inputData.getBoolean(FORCE_FULL_EXTRA, false)
         val includeSupportBundle = inputData.getBoolean(Constants.SUPPORT_BUNDLE_EXTRA, false)
         val userData = userPrefsRepo.userPreferencesFlow.first()
-        if (userData.uniqueId.isBlank()) return Result.success()
+        if (userData.uniqueId.isBlank() || userData.idSync.isBlank()) {
+            logAndWrite(context, "Sincronização ignorada: identidade ou IDSync em falta", "FullSyncWorker", "doWork", "WARN")
+            return Result.success()
+        }
 
         logAndWrite(
             context,

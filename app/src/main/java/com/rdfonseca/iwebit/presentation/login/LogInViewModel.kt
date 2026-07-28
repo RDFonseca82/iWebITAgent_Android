@@ -34,7 +34,7 @@ class LogInViewModel @Inject constructor(
     fun logIn(navigateTo: () -> Unit) {
         viewModelScope.launch {
             logInUseCase(
-                userPreferencesRepository.userPreferencesFlow.first().deviceUUID,
+                userPreferencesRepository.userPreferencesFlow.first().uniqueId,
                 logInValue
             ).onEach { result ->
                 when (result) {

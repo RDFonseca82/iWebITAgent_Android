@@ -109,9 +109,19 @@ class UserPrefsRepositoryImpl @Inject constructor(
             )
         }
 
+        val backup = criticalIdentityStore.read()
+        var resolvedUniqueId = permanentUniqueId
         dataStore.edit { preferences ->
+            val requestedUniqueId = uniqueId
+                ?.takeIf(DeviceIdentity::isValidUniqueId)
+                ?: permanentUniqueId
+            resolvedUniqueId = DeviceIdentity.preferredUniqueId(
+                storedUniqueId = preferences[PreferencesKeys.UNIQUE_ID],
+                backedUpUniqueId = backup.uniqueId,
+                generatedUniqueId = requestedUniqueId
+            )
             preferences[PreferencesKeys.DEVICE_UUID] = stableDeviceId
-            preferences[PreferencesKeys.UNIQUE_ID] = permanentUniqueId
+            preferences[PreferencesKeys.UNIQUE_ID] = resolvedUniqueId
             preferences[PreferencesKeys.ID_SYNC] = registration.idSync
             preferences[PreferencesKeys.ID_COMPANY] = registration.idCompany
             preferences[PreferencesKeys.COMPANY_NAME] = registration.companyName
@@ -119,10 +129,11 @@ class UserPrefsRepositoryImpl @Inject constructor(
             preferences[PreferencesKeys.TIME_ALIVE] = registration.timeAlive
         }
 
+        val persistedRegistration = registration.copy(uniqueId = resolvedUniqueId)
         if (registration.idSync.isBlank()) {
-            criticalIdentityStore.clear()
+            criticalIdentityStore.write(persistedRegistration.copy(recoveryDisabled = true))
         } else {
-            criticalIdentityStore.write(registration)
+            criticalIdentityStore.write(persistedRegistration)
         }
     }
 
@@ -140,8 +151,8 @@ class UserPrefsRepositoryImpl @Inject constructor(
             if (criticalIdentityStore.read().recoveryDisabled) return
 
             runCatching {
-                val device = api.getDeviceInfo(permanentUniqueId)
-                require(device.UniqueID.equals(permanentUniqueId, ignoreCase = true)) {
+                val device = api.getDeviceInfo(current.uniqueId)
+                require(device.UniqueID.equals(current.uniqueId, ignoreCase = true)) {
                     "A plataforma devolveu uma identidade diferente"
                 }
                 require(device.IDSync.isNotBlank()) {
@@ -149,7 +160,7 @@ class UserPrefsRepositoryImpl @Inject constructor(
                 }
                 val company = api.getCompanyInfo(device.IDSync)
                 updateUserInfo(
-                    uniqueId = permanentUniqueId,
+                    uniqueId = current.uniqueId,
                     idSync = device.IDSync,
                     idCompany = company.IdCompany,
                     companyName = company.Company,
@@ -176,6 +187,11 @@ class UserPrefsRepositoryImpl @Inject constructor(
     private suspend fun restoreLocalIdentity() {
         val backup = criticalIdentityStore.read()
         dataStore.edit { preferences ->
+            val uniqueId = DeviceIdentity.preferredUniqueId(
+                storedUniqueId = preferences[PreferencesKeys.UNIQUE_ID],
+                backedUpUniqueId = backup.uniqueId,
+                generatedUniqueId = permanentUniqueId
+            )
             val idSync = preferences[PreferencesKeys.ID_SYNC]
                 .orEmpty()
                 .ifBlank { backup.idSync }
@@ -193,7 +209,7 @@ class UserPrefsRepositoryImpl @Inject constructor(
                 .ifBlank { backup.timeAlive }
 
             preferences[PreferencesKeys.DEVICE_UUID] = stableDeviceId
-            preferences[PreferencesKeys.UNIQUE_ID] = permanentUniqueId
+            preferences[PreferencesKeys.UNIQUE_ID] = uniqueId
             preferences[PreferencesKeys.ID_SYNC] = idSync
             preferences[PreferencesKeys.ID_COMPANY] = idCompany
             preferences[PreferencesKeys.COMPANY_NAME] = companyName
@@ -203,6 +219,7 @@ class UserPrefsRepositoryImpl @Inject constructor(
             if (idSync.isNotBlank()) {
                 criticalIdentityStore.write(
                     CriticalRegistration(
+                        uniqueId = uniqueId,
                         idSync = idSync,
                         idCompany = idCompany,
                         companyName = companyName,
@@ -237,6 +254,11 @@ class UserPrefsRepositoryImpl @Inject constructor(
         }.getOrDefault(DarkThemeMode.SYSTEM)
         val cachedSupportNome = preferences[PreferencesKeys.SUPPORT_NOME] ?: ""
         val cachedSupportSuporte = preferences[PreferencesKeys.SUPPORT_SUPORTE] ?: ""
+        val uniqueId = DeviceIdentity.preferredUniqueId(
+            storedUniqueId = preferences[PreferencesKeys.UNIQUE_ID],
+            backedUpUniqueId = backup.uniqueId,
+            generatedUniqueId = permanentUniqueId
+        )
         val idSync = preferences[PreferencesKeys.ID_SYNC]
             .orEmpty()
             .ifBlank { backup.idSync }
@@ -262,7 +284,7 @@ class UserPrefsRepositoryImpl @Inject constructor(
             theme = ThemeState(darkTheme),
             cachedSupportNome = cachedSupportNome,
             cachedSupportSuporte = cachedSupportSuporte,
-            uniqueId = permanentUniqueId,
+            uniqueId = uniqueId,
             idSync = idSync,
             idCompany = idCompany,
             companyName = companyName,

@@ -84,7 +84,33 @@ class OfflineSyncRepository @Inject constructor(
             }
 
             if (response.isSuccessful) {
-                logAndWrite(context, "Sincronização ${item.syncType} concluída", "OfflineSyncRepository", "flush")
+                val responseBody = runCatching { response.body().orEmpty() }
+                    .getOrDefault("")
+                val semanticError = SyncResponseValidator.errorOrNull(responseBody)
+                if (semanticError != null) {
+                    val message = "Servidor rejeitou o payload: $semanticError"
+                    logAndWrite(
+                        context,
+                        "Sincronização ${item.syncType} não confirmada: $semanticError",
+                        "OfflineSyncRepository",
+                        "flush",
+                        "ERROR"
+                    )
+                    dao.updateOutcome(item.syncType, message, PendingSyncEntity.STATE_PENDING)
+                    updateStatus(lastAttemptAt = attemptedAt, error = message)
+                    return SyncFlushResult.RETRY
+                }
+
+                val confirmation = responseBody
+                    .replace(Regex("[\\r\\n]+"), " ")
+                    .take(200)
+                    .ifBlank { "resposta vazia" }
+                logAndWrite(
+                    context,
+                    "Sincronização ${item.syncType} concluída; servidor: $confirmation",
+                    "OfflineSyncRepository",
+                    "flush"
+                )
                 dao.delete(item.syncType)
                 updateStatus(
                     lastAttemptAt = attemptedAt,

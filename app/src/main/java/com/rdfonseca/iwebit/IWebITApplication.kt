@@ -5,6 +5,9 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
 import com.rdfonseca.iwebit.common.logAndWrite
+import com.rdfonseca.iwebit.common.enqueueInitialSync
+import com.rdfonseca.iwebit.common.setupFullSyncWorker
+import com.rdfonseca.iwebit.common.setupMinSyncWorker
 import com.rdfonseca.iwebit.update.scheduleAppUpdateChecks
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -29,6 +32,9 @@ class IWebITApplication : Application(), Configuration.Provider {
         logAndWrite(this, "Agente iniciado; versão ${BuildConfig.VERSION_NAME}", "IWebITApplication", "onCreate")
         applicationScope.launch {
             userPrefsRepository.ensurePermanentIdentity()
+            setupFullSyncWorker(this@IWebITApplication)
+            setupMinSyncWorker(this@IWebITApplication)
+            enqueueInitialSync(this@IWebITApplication)
         }
         if (BuildConfig.SELF_UPDATE_ENABLED) {
             scheduleAppUpdateChecks(this)
