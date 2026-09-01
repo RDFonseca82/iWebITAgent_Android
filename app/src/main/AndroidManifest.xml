@@ -18,6 +18,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
@@ -62,6 +63,9 @@
             android:foregroundServiceType="location"
             android:directBootAware="true"/>
 
+        <receiver
+            android:name=".receivers.AppUpdateStatusReceiver"
+            android:exported="false" />
         <receiver
             android:name=".receivers.SetAlarmsOnBootReceiver"
             android:enabled="true"

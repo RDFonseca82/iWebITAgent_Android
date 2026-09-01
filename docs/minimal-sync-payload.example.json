@@ -24,8 +24,8 @@
     "foregroundLocationPermission": true,
     "backgroundLocationPermission": true,
     "notificationsEnabled": true,
-    "appVersion": "4.9",
-    "appVersionCode": 409
+    "appVersion": "4.10",
+    "appVersionCode": 410
   },
   "incidents": []
 }

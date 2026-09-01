@@ -1,5 +1,6 @@
 package com.rdfonseca.iwebit.presentation.update
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -20,11 +21,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import com.rdfonseca.iwebit.domain.model.AppUpdate
 import com.rdfonseca.iwebit.presentation.ui.theme.IWebITTheme
 import com.rdfonseca.iwebit.presentation.ui.theme.isDarkTheme
 import com.rdfonseca.iwebit.update.AppUpdateManager
+import com.rdfonseca.iwebit.update.PackageInstallSubmission
+import com.rdfonseca.iwebit.update.PackageUpdateInstaller
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,13 +39,18 @@ class UpdateInstallActivity : ComponentActivity() {
     private var ready by mutableStateOf(false)
     private lateinit var apk: File
     private lateinit var expectedSha256: String
+    private var versionCode: Long = 0
+    private var versionName: String = ""
+    private var releaseNotes: String = ""
+    private var waitingForInstallPermission = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         apk = File(intent.getStringExtra(EXTRA_APK_PATH).orEmpty())
         expectedSha256 = intent.getStringExtra(EXTRA_SHA256).orEmpty()
-        val versionName = intent.getStringExtra(EXTRA_VERSION_NAME).orEmpty()
-        val releaseNotes = intent.getStringExtra(EXTRA_RELEASE_NOTES).orEmpty()
+        versionCode = intent.getLongExtra(EXTRA_VERSION_CODE, 0)
+        versionName = intent.getStringExtra(EXTRA_VERSION_NAME).orEmpty()
+        releaseNotes = intent.getStringExtra(EXTRA_RELEASE_NOTES).orEmpty()
 
         setContent {
             IWebITTheme(darkTheme = isDarkTheme()) {
@@ -80,8 +89,22 @@ class UpdateInstallActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (
+            waitingForInstallPermission &&
+            ready &&
+            PackageUpdateInstaller(this).canRequestPackageInstalls()
+        ) {
+            waitingForInstallPermission = false
+            submitInstall()
+        }
+    }
+
     private fun requestInstall() {
-        if (!packageManager.canRequestPackageInstalls()) {
+        val installer = PackageUpdateInstaller(this)
+        if (!installer.canRequestPackageInstalls()) {
+            waitingForInstallPermission = true
             startActivity(
                 Intent(
                     Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -91,20 +114,66 @@ class UpdateInstallActivity : ComponentActivity() {
             status = "Autorize a instalação por esta aplicação e volte a este ecrã."
             return
         }
-        val uri = FileProvider.getUriForFile(this, "$packageName.update-files", apk)
-        startActivity(
-            Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, APK_MIME_TYPE)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        submitInstall()
+    }
+
+    private fun submitInstall() {
+        ready = false
+        status = "A iniciar a instalação…"
+        lifecycleScope.launch {
+            try {
+                when (
+                    val result = PackageUpdateInstaller(this@UpdateInstallActivity).submit(
+                        apk = apk,
+                        update = AppUpdate(
+                            versionCode = versionCode,
+                            versionName = versionName,
+                            sha256 = expectedSha256,
+                            releaseNotes = releaseNotes
+                        )
+                    )
+                ) {
+                    PackageInstallSubmission.PermissionRequired -> {
+                        ready = true
+                        status = "Autorize esta aplicação a instalar atualizações."
+                    }
+                    is PackageInstallSubmission.Submitted -> {
+                        status = if (result.silentRequested) {
+                            "Atualização enviada para instalação silenciosa."
+                        } else {
+                            "Atualização enviada; o Android pedirá confirmação."
+                        }
+                    }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                ready = true
+                status = "Não foi possível iniciar a instalação: ${error.localizedMessage}"
             }
-        )
+        }
     }
 
     companion object {
         const val EXTRA_APK_PATH = "update_apk_path"
         const val EXTRA_SHA256 = "update_sha256"
+        const val EXTRA_VERSION_CODE = "update_version_code"
         const val EXTRA_VERSION_NAME = "update_version_name"
         const val EXTRA_RELEASE_NOTES = "update_release_notes"
-        private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
+
+        fun createIntent(
+            context: Context,
+            apkPath: String,
+            sha256: String,
+            versionCode: Long,
+            versionName: String,
+            releaseNotes: String
+        ): Intent = Intent(context, UpdateInstallActivity::class.java).apply {
+            putExtra(EXTRA_APK_PATH, apkPath)
+            putExtra(EXTRA_SHA256, sha256)
+            putExtra(EXTRA_VERSION_CODE, versionCode)
+            putExtra(EXTRA_VERSION_NAME, versionName)
+            putExtra(EXTRA_RELEASE_NOTES, releaseNotes)
+        }
     }
 }
