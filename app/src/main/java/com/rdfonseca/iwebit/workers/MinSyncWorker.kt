@@ -18,6 +18,8 @@ import com.rdfonseca.iwebit.common.createRequestedScreenShotNotification
 import com.rdfonseca.iwebit.common.createSysTrayNotification
 import com.rdfonseca.iwebit.common.createUninstallAppsNotification
 import com.rdfonseca.iwebit.common.logAndWrite
+import com.rdfonseca.iwebit.background.BackgroundUpdateResult
+import com.rdfonseca.iwebit.background.BackgroundWallpaperManager
 import com.rdfonseca.iwebit.data.remote.IWebITApi
 import com.rdfonseca.iwebit.data.repository.OfflineSyncRepository
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
@@ -39,7 +41,8 @@ class MinSyncWorker @AssistedInject constructor(
     private val userPrefsRepo: UserPrefsRepositoryImpl,
     private val api: IWebITApi,
     private val offlineSyncRepository: OfflineSyncRepository,
-    private val converters: Converters
+    private val converters: Converters,
+    private val backgroundWallpaperManager: BackgroundWallpaperManager
 ) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         logAndWrite(context, "DOING MINIMAL SYNC", "MinSyncWorker", "doWork")
@@ -64,6 +67,34 @@ class MinSyncWorker @AssistedInject constructor(
             val deviceInfo = api.getDeviceInfo(userData.uniqueId)
             deviceInfo.MessageTxt?.takeIf { it != "null" && it.isNotBlank() && it != "0" }?.let {
                 createMessageTxt(context, it)
+            }
+
+            try {
+                when (
+                    val backgroundResult = backgroundWallpaperManager.synchronize(
+                        setBackground = deviceInfo.SetBackground,
+                        backgroundImage = deviceInfo.BackgroundImage
+                    )
+                ) {
+                    is BackgroundUpdateResult.Applied -> logAndWrite(
+                        context,
+                        "Background aplicado a partir de ${backgroundResult.sourceHost}",
+                        "MinSyncWorker",
+                        "doWork"
+                    )
+                    BackgroundUpdateResult.AlreadyApplied,
+                    BackgroundUpdateResult.NoRequest -> Unit
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                logAndWrite(
+                    context,
+                    "Falha ao aplicar background: ${exception.localizedMessage}",
+                    "MinSyncWorker",
+                    "doWork",
+                    "ERROR"
+                )
             }
 
             if (deviceInfo.DeviceLocation == 1) {

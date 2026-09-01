@@ -19,6 +19,8 @@ data class DeviceInfoDto(
     val OperatingSystem_Reboot: Int,
     val OperatingSystem_ShutDown: Int,
     val SupportBundle: Int = 0,
+    val SetBackground: Int = 0,
+    val BackgroundImage: String? = null,
     val TimeAlive: Int,
     val TimeSync: Int,
     val UniqueID: String
