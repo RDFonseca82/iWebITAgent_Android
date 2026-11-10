@@ -24,7 +24,7 @@ okhttp = "4.12.0"
 playServicesLocation = "21.3.0"
 squareupRetrofit = "2.9.0"
 workManager = "2.12.0"
-room = "2.6.1"
+room = "2.8.5"
 
 [libraries]
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "googleAccompanists" }
@@ -33,9 +33,7 @@ accompanist-webview = { module = "com.google.accompanist:accompanist-webview", v
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
-androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "hiltCompiler" }
-androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltCompiler" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }

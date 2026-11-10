@@ -132,9 +132,7 @@ dependencies {
     //Dagger - Hilt
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
-    kapt(libs.androidx.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.hilt.work)
 
     // Preferences DataStore
     implementation(libs.androidx.datastore.preferences)

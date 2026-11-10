@@ -1,7 +1,6 @@
 package com.rdfonseca.iwebit.workers
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.rdfonseca.iwebit.common.Constants
@@ -16,16 +15,13 @@ import com.rdfonseca.iwebit.data.util.Converters
 import com.rdfonseca.iwebit.domain.model.SyncFlushResult
 import com.rdfonseca.iwebit.domain.model.SyncType
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonFull
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 
-@HiltWorker
-class FullSyncWorker @AssistedInject constructor(
-    @Assisted private val context: Context,
-    @Assisted params: WorkerParameters,
+class FullSyncWorker(
+    private val context: Context,
+    params: WorkerParameters,
     private val userPrefsRepo: UserPrefsRepositoryImpl,
     private val offlineSyncRepository: OfflineSyncRepository,
     private val converters: Converters

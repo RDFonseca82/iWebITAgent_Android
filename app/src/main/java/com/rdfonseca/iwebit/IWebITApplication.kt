@@ -1,7 +1,6 @@
 package com.rdfonseca.iwebit
 
 import android.app.Application
-import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.rdfonseca.iwebit.data.repository.UserPrefsRepositoryImpl
 import com.rdfonseca.iwebit.common.logAndWrite
@@ -9,6 +8,7 @@ import com.rdfonseca.iwebit.common.enqueueInitialSync
 import com.rdfonseca.iwebit.common.setupFullSyncWorker
 import com.rdfonseca.iwebit.common.setupMinSyncWorker
 import com.rdfonseca.iwebit.update.scheduleAppUpdateChecks
+import com.rdfonseca.iwebit.workers.IWebITWorkerFactory
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 class IWebITApplication : Application(), Configuration.Provider {
 
     @Inject
-    lateinit var workerFactory: HiltWorkerFactory
+    lateinit var workerFactory: IWebITWorkerFactory
 
     @Inject
     lateinit var userPrefsRepository: UserPrefsRepositoryImpl
