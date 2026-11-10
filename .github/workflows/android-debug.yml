@@ -87,6 +87,7 @@ jobs:
       - name: Testar e compilar APK empresarial
         run: >-
           ./gradlew testEnterpriseDebugUnitTest lintEnterpriseRelease assembleEnterpriseRelease
+          --stacktrace
           -PciVersionCode=${CI_VERSION_CODE}
           -PciVersionName=${CI_VERSION_NAME}
 
