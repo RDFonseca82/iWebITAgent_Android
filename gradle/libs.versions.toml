@@ -6,7 +6,7 @@ datastorePreferences = "1.1.1"
 gradle = "8.9.1"
 hiltAndroid = "2.57.2"
 hiltAndroidGradlePlugin = "2.57.2"
-hiltCompiler = "1.2.0"
+hiltCompiler = "1.3.0"
 kotlin = "2.1.20"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -34,7 +34,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
-androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltCompiler" }
+androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "hiltCompiler" }
 androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltCompiler" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleKtx" }
