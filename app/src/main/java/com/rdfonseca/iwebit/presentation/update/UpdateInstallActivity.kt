@@ -7,8 +7,12 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -46,6 +50,7 @@ class UpdateInstallActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         apk = File(intent.getStringExtra(EXTRA_APK_PATH).orEmpty())
         expectedSha256 = intent.getStringExtra(EXTRA_SHA256).orEmpty()
         versionCode = intent.getLongExtra(EXTRA_VERSION_CODE, 0)
@@ -56,7 +61,10 @@ class UpdateInstallActivity : ComponentActivity() {
             IWebITTheme(darkTheme = isDarkTheme()) {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     Column(
-                        modifier = Modifier.fillMaxSize().padding(24.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .padding(24.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {

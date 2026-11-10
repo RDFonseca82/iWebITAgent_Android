@@ -24,8 +24,8 @@ android {
         applicationId = "com.rdfonseca.iwebit"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("ciVersionCode").orNull?.toInt() ?: 410
-        versionName = providers.gradleProperty("ciVersionName").orNull ?: "4.10"
+        versionCode = providers.gradleProperty("ciVersionCode").orNull?.toInt() ?: 411
+        versionName = providers.gradleProperty("ciVersionName").orNull ?: "4.11"
 
         buildConfigField(
             "String",
@@ -66,7 +66,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -30,10 +30,24 @@ class IWebITApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         logAndWrite(this, "Agente iniciado; versão ${BuildConfig.VERSION_NAME}", "IWebITApplication", "onCreate")
+
+        // O agendamento não pode depender da recuperação da identidade. Se a leitura
+        // do armazenamento falhar, os trabalhos periódicos continuam ativos e tentam
+        // novamente quando o Android permitir a execução em background.
+        setupFullSyncWorker(this)
+        setupMinSyncWorker(this)
+
         applicationScope.launch {
-            userPrefsRepository.ensurePermanentIdentity()
-            setupFullSyncWorker(this@IWebITApplication)
-            setupMinSyncWorker(this@IWebITApplication)
+            runCatching { userPrefsRepository.ensurePermanentIdentity() }
+                .onFailure {
+                    logAndWrite(
+                        this@IWebITApplication,
+                        "Não foi possível validar a identidade permanente: ${it.localizedMessage}",
+                        "IWebITApplication",
+                        "onCreate",
+                        "ERROR"
+                    )
+                }
             enqueueInitialSync(this@IWebITApplication)
         }
         if (BuildConfig.SELF_UPDATE_ENABLED) {

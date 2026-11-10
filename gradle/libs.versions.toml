@@ -23,7 +23,7 @@ materialIconsExtended = "1.6.8"
 okhttp = "4.12.0"
 playServicesLocation = "21.3.0"
 squareupRetrofit = "2.9.0"
-workManager = "2.9.0"
+workManager = "2.12.0"
 room = "2.6.1"
 
 [libraries]

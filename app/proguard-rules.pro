@@ -19,3 +19,21 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Retrofit/Gson use annotations and generic signatures at runtime. Preserve the
+# metadata and the JSON field names while allowing the remaining implementation
+# classes and methods to be optimized and obfuscated by R8.
+-keepattributes Signature,InnerClasses,EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
+
+-keepclassmembers,allowoptimization class com.rdfonseca.iwebit.data.remote.dto.** {
+    <fields>;
+}
+
+-keepclassmembers,allowoptimization class com.rdfonseca.iwebit.domain.model.** {
+    <fields>;
+}
+
+-keepclassmembers,allowoptimization class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
