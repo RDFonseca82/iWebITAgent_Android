@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
@@ -27,13 +28,16 @@ import com.rdfonseca.iwebit.domain.model.SyncFlushResult
 import com.rdfonseca.iwebit.domain.model.SyncType
 import com.rdfonseca.iwebit.domain.model.getBodyInJsonMin
 import com.rdfonseca.iwebit.services.SincLocationService
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.io.IOException
 
-class MinSyncWorker(
-    private val context: Context,
-    params: WorkerParameters,
+@HiltWorker
+class MinSyncWorker @AssistedInject constructor(
+    @Assisted private val context: Context,
+    @Assisted params: WorkerParameters,
     private val userPrefsRepo: UserPrefsRepositoryImpl,
     private val api: IWebITApi,
     private val offlineSyncRepository: OfflineSyncRepository,
